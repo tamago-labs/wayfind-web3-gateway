@@ -1,0 +1,83 @@
+'use client';
+
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import Mascot, { type MascotColor } from '@/components/Mascot';
+
+// Hero mascot row (wayfind-hero-design.html option E): amber, moss, lagoon, ash.
+const mascots: MascotColor[] = ['amber', 'moss', 'lagoon', 'ash'];
+
+// Option E (wayfind-hero-design.html): rising job-message bubbles, negative
+// delays so the loop is already populated on first paint.
+const bubbles = [
+  { left: 'left-[4%]', cls: 'bg-white text-navy shadow', text: '100 USDC sent', delay: '0s' },
+  { left: 'left-[22%]', cls: 'bg-bamber text-navy', text: 'Swap approved', delay: '-4s' },
+  { left: 'left-[62%]', cls: 'bg-white text-navy shadow', text: 'Balance checked', delay: '-8s' },
+  { left: 'left-[80%]', cls: 'bg-blagoon text-white', text: 'Policy passed', delay: '-2s' },
+  { left: 'left-[12%]', cls: 'bg-bmoss text-white', text: 'Treasury transfer', delay: '-11s' },
+  { left: 'left-[88%]', cls: 'bg-white text-navy shadow', text: 'Signer revoked', delay: '-6s' },
+  { left: 'left-[70%]', cls: 'bg-cta text-white', text: 'Limit enforced', delay: '-13s' },
+];
+
+export default function Hero() {
+  return (
+    <section className="relative overflow-hidden bg-herobg text-navy">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-[640px] text-sm font-semibold">
+        {bubbles.map((b) => (
+          <span
+            key={b.text}
+            className={`animate-rise absolute bottom-0 rounded-full px-4 py-2 ${b.left} ${b.cls}`}
+            style={{ animationDelay: b.delay }}
+          >
+            {b.text}
+          </span>
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative mx-auto max-w-4xl px-6 pb-40 pt-20 text-center"
+      >
+        <div className="mx-auto mb-6 flex justify-center -space-x-3">
+          {mascots.map((color, i) => (
+            <Mascot
+              key={color}
+              color={color}
+              size="md"
+              motion="none"
+              blink="calm"
+              blinkDelay={`-${i * 1.4}s`}
+              className="ring-4 ring-herobg"
+            />
+          ))}
+        </div>
+
+        <h1 className="font-brico text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">
+          Your Bots can now transact onchain.
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg text-heroslate">
+          Give your AI Bots onchain access via MCP. Transfer limits, allowlists, and time bounds are enforced before every transaction.
+        </p>
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
+          <Link href="#" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">
+            Access Web3 MCP
+          </Link>
+        </div>
+        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-heroslate">
+          <span>Supports</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png"
+            alt="Solana"
+            className="h-5 w-5 rounded-full"
+            loading="lazy"
+          />
+          <span className="font-semibold text-navy">Solana</span>
+          <span>&amp; more to come</span>
+        </div>
+      </motion.div>
+    </section>
+  );
+}
