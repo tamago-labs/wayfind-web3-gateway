@@ -42,6 +42,7 @@ export default function Header() {
           ))}
         </nav>
 
+        {/* Enter App hidden for now — restore when /app goes live
         <div className="hidden items-center gap-3 text-[15px] font-medium md:flex">
           <Link
             href="/app"
@@ -50,6 +51,7 @@ export default function Header() {
             Enter App
           </Link>
         </div>
+        */}
 
         <button onClick={() => setOpen(!open)} className="md:hidden ml-auto text-navy/60 hover:text-navy transition-colors" aria-label="Menu">
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -70,9 +72,11 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            {/* Enter App hidden for now — restore when /app goes live
             <Link href="/app" onClick={() => setOpen(false)} className="block mt-2 text-center rounded-full bg-navy px-5 py-2.5 text-[15px] font-medium text-white">
               Enter App
             </Link>
+            */}
           </motion.div>
         )}
       </AnimatePresence>
