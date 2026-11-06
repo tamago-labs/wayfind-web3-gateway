@@ -17,8 +17,9 @@ export default function AppPage() {
   const solanaWallets = useMemo(() => {
     const fromHook = solanaHookWallets.filter((w) => w.address);
     if (fromHook.length > 0) return fromHook.map((w) => ({ address: w.address as string }));
+    // Fallback: app is solana-only, so any wallet here is treated as Solana.
     return wallets
-      .filter((w) => (w.chainType as string) === 'solana' && w.address)
+      .filter((w) => w.address)
       .map((w) => ({ address: w.address as string }));
   }, [wallets, solanaHookWallets]);
 
@@ -109,7 +110,7 @@ export default function AppPage() {
             wallets must be enabled for this app.
           </p>
           <p className="mt-2 font-mono text-xs">
-            debug: total={wallets.length} chains=[{wallets.map((w) => String(w.chainType)).join(',') || 'none'}]
+            debug: total={wallets.length} solanaHook={solanaHookWallets.length}
           </p>
         </div>
       ) : (
