@@ -61,7 +61,7 @@ export default function Hero() {
           Give your AI Bots onchain access via MCP. Transfer limits, allowlists, and time bounds are enforced before every transaction.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-          <Link href="#" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">
+          <Link href="/app" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">
             Access Web3 MCP
           </Link>
         </div>

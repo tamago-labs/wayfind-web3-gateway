@@ -43,14 +43,11 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 text-[15px] font-medium md:flex">
-          <Link href="#" className="hidden text-navy hover:opacity-60 transition-opacity sm:block">
-            Log in
-          </Link>
           <Link
-            href="#"
+            href="/app"
             className="rounded-full bg-navy px-5 py-2.5 text-white hover:opacity-90 transition-opacity"
           >
-            Start free
+            Enter App
           </Link>
         </div>
 
@@ -73,11 +70,8 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            <Link href="#" onClick={() => setOpen(false)} className="block text-[15px] font-medium text-navy hover:opacity-60">
-              Log in
-            </Link>
-            <Link href="#" onClick={() => setOpen(false)} className="block mt-2 text-center rounded-full bg-navy px-5 py-2.5 text-[15px] font-medium text-white">
-              Start free
+            <Link href="/app" onClick={() => setOpen(false)} className="block mt-2 text-center rounded-full bg-navy px-5 py-2.5 text-[15px] font-medium text-white">
+              Enter App
             </Link>
           </motion.div>
         )}

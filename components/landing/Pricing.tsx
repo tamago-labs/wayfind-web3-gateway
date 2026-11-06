@@ -102,7 +102,7 @@ export default function Pricing() {
                 ))}
               </ul>
               <Link
-                href="#"
+                href="/app"
                 className={`mt-8 rounded-full px-6 py-3 text-center font-semibold transition-colors ${
                   p.featured
                     ? 'bg-cta text-white hover:bg-ctahover'

@@ -24,7 +24,7 @@ export default function FinalCta() {
           Start free during early access. No credit card required. Create your first Bot and put it to work in minutes.
         </p>
         <Link
-          href="#"
+          href="/app"
           className="mt-8 inline-block rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors"
         >
           Create your first Bot

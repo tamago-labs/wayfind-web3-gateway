@@ -1,6 +1,6 @@
 {
-  "name": "wayfind-cloud-amplify",
-  "version": "1.1.0",
+  "name": "wayfind-web3-amplify",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@farcaster/mini-app-solana": "^3.0.0",
+    "@farcaster/miniapp-sdk": "^0.4.0",
+    "@privy-io/react-auth": "^3.51.3",
+    "@solana-program/memo": "^0.16.0",
+    "@solana-program/system": "^0.16.0",
+    "@solana-program/token": "^0.18.0",
+    "@solana/kit": "^8.6.0",
+    "@solana/wallet-adapter-react": "^0.15.40",
+    "@solana/web3.js": "^3.1.1",
+    "@stripe/stripe-js": "^10.2.1",
     "aws-amplify": "^6.6.6",
     "framer-motion": "^13.2.0",
     "lucide-react": "^1.44.0",

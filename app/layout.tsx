@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from "next";
 import ConfigureAmplify from "@/components/ConfigureAmplify";
+import PrivyProviders from "@/components/PrivyProviders";
 // import Script from "next/script";
 import "./globals.css";
 
@@ -34,7 +35,9 @@ export default function RootLayout({
         </Script>*/}
       </head>
       <body className="font-sans">
-        <ConfigureAmplify>{children}</ConfigureAmplify>
+        <ConfigureAmplify>
+          <PrivyProviders>{children}</PrivyProviders>
+        </ConfigureAmplify>
       </body>
     </html>
   );
