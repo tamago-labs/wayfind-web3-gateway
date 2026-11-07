@@ -18,6 +18,12 @@ const TOKEN_PROGRAM_IDS = new Set([
 
 const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
+/** Base58 (OKX tx encoding) → base64 (Privy tx encoding). */
+export function base58ToBase64(s: string): string | null {
+  const bytes = base58ToBytes(s);
+  return bytes ? Buffer.from(bytes).toString("base64") : null;
+}
+
 function base58ToBytes(s: string): Uint8Array | null {
   try {
     let num = 0n;

@@ -29,6 +29,14 @@ const CATALOG: {
   },
   { id: 'stocks', label: 'Tokenized stocks', tools: [], comingSoon: true },
   { id: 'payments', label: 'Circle payments', tools: [], comingSoon: true },
+  {
+    id: 'okx',
+    label: 'OKX DEX Swap',
+    tools: [
+      { name: 'okx_get_quote', description: 'Read-only swap quote (Solana mainnet).' },
+      { name: 'okx_swap_tokens', description: 'Swap via OKX DEX. Mainnet only, policy-enforced.' },
+    ],
+  },
 ];
 
 interface Config {

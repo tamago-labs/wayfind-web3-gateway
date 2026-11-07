@@ -74,8 +74,9 @@ export interface SwapInstructionParams extends SwapQuoteParams {
   slippagePercent?: string;
 }
 
-/** Returns { base58Transaction, routerResult, minReceiveAmount }. The tx
- * encoding is confirmed from the live response before Privy submission. */
+/** Returns { base58Transaction, routerResult, minReceiveAmount }. Live OKX
+ * responses are flat ({ base58Transaction, ... }); the nested tx shape is
+ * kept as a fallback. The tx is a base58 legacy transaction. */
 export async function getSwapInstruction(p: SwapInstructionParams): Promise<{
   base58Transaction: string;
   routerResult: unknown;
@@ -96,11 +97,16 @@ export async function getSwapInstruction(p: SwapInstructionParams): Promise<{
     userWalletAddress: p.userWalletAddress,
     slippagePercent: p.slippagePercent ?? "0.5",
     autoSlippage: "true",
-  })) as { tx?: { data?: string; minReceiveAmount?: string }; routerResult?: unknown };
+  })) as {
+    base58Transaction?: string;
+    routerResult?: unknown;
+    minReceiveAmount?: string;
+    tx?: { data?: string; minReceiveAmount?: string };
+  };
   if (!swapData) throw new Error("No swap data available");
   return {
-    base58Transaction: swapData.tx?.data ?? "",
+    base58Transaction: swapData.base58Transaction ?? swapData.tx?.data ?? "",
     routerResult: swapData.routerResult,
-    minReceiveAmount: swapData.tx?.minReceiveAmount ?? "0",
+    minReceiveAmount: swapData.minReceiveAmount ?? swapData.tx?.minReceiveAmount ?? "0",
   };
 }

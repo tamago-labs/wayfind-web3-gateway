@@ -4,6 +4,8 @@ import { getHistoryTool } from "./tools/wallet/get_history";
 import { getTransactionTool } from "./tools/wallet/get_transaction";
 import { getWalletAddressTool } from "./tools/wallet/get_wallet_address";
 import { sendTokensTool } from "./tools/wallet/send_tokens";
+import { getQuoteTool } from "./tools/okx/get_quote";
+import { swapTokensTool } from "./tools/okx/swap_tokens";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -15,12 +17,15 @@ const allTools: ToolDef[] = [
   getTransactionTool,
   getWalletAddressTool,
   sendTokensTool,
+  getQuoteTool,
+  swapTokensTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "wallet", label: "Wallet operations" },
   { id: "stocks", label: "Tokenized stocks" },
   { id: "payments", label: "Circle payments" },
+  { id: "okx", label: "OKX DEX Swap" },
 ];
 
 export function listTools(ctx: ToolContext): ToolDef[] {
