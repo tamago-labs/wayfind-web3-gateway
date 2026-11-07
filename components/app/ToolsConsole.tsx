@@ -37,6 +37,16 @@ const CATALOG: {
       { name: 'okx_swap_tokens', description: 'Swap via OKX DEX. Mainnet only, policy-enforced.' },
     ],
   },
+  {
+    id: 'usdc',
+    label: 'USDC finance',
+    tools: [
+      { name: 'usdc_unified_balance', description: 'Total USDC + per-chain breakdown. Read-only.' },
+      { name: 'usdc_chains', description: 'Valid destination chains for the current network. Read-only.' },
+      { name: 'usdc_deposit', description: 'Deposit USDC into unified balance. Policy-enforced.' },
+      { name: 'usdc_spend', description: 'Spend USDC, optionally cross-chain. Policy-enforced.' },
+    ],
+  },
 ];
 
 interface Config {

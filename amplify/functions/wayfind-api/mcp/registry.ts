@@ -6,6 +6,10 @@ import { getWalletAddressTool } from "./tools/wallet/get_wallet_address";
 import { sendTokensTool } from "./tools/wallet/send_tokens";
 import { getQuoteTool } from "./tools/okx/get_quote";
 import { swapTokensTool } from "./tools/okx/swap_tokens";
+import { unifiedBalanceTool } from "./tools/usdc/unified_balance";
+import { usdcChainsTool } from "./tools/usdc/chains";
+import { usdcDepositTool } from "./tools/usdc/deposit";
+import { usdcSpendTool } from "./tools/usdc/spend";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -19,6 +23,10 @@ const allTools: ToolDef[] = [
   sendTokensTool,
   getQuoteTool,
   swapTokensTool,
+  unifiedBalanceTool,
+  usdcChainsTool,
+  usdcDepositTool,
+  usdcSpendTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
@@ -26,6 +34,7 @@ export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "stocks", label: "Tokenized stocks" },
   { id: "payments", label: "Circle payments" },
   { id: "okx", label: "OKX DEX Swap" },
+  { id: "usdc", label: "USDC finance" },
 ];
 
 export function listTools(ctx: ToolContext): ToolDef[] {
