@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Wayfind Web3 Gateway for AI Agents",
   description:
-    "The Web3 gateway for Wayfind Cloud. You own the wallet, Wayfind signs as a restricted signer. Bots transact via MCP under limits, allowlists, and revoke-anytime policies.",
+    "The Web3 gateway for AI agents. You own your wallet; Wayfind signs as a restricted signer. Bots transact via MCP under spending limits, allowlists, and policies you can revoke anytime.",
 };
 
 export default function RootLayout({

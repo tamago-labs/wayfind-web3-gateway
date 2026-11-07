@@ -9,7 +9,7 @@ import Mascot from '@/components/Mascot';
 // Nav anchors: #how #usecases. Dashboard + Wayfind Cloud are pinned after.
 const navLinks: { href: string; label: string }[] = [
   { href: '/#how', label: 'How it works' },
-  { href: '/#usecases', label: 'Use cases' },
+  { href: '/#usecases', label: 'What bots can do' },
 ];
 
 export function Logo() {

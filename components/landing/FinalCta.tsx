@@ -19,15 +19,15 @@ export default function FinalCta() {
             />
           ))}
         </div>
-        <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Build your AI team today.</h2>
+        <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Put your bots on-chain today.</h2>
         <p className="mx-auto mt-4 max-w-md text-lg text-white/70">
-          Start free during early access. No credit card required. Create your first Bot and put it to work in minutes.
+          20+ tools ready for on-chain work, running 24/7. Free to start.
         </p>
         <Link
           href="/app"
           className="mt-8 inline-block rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors"
         >
-          Create your first Bot
+          Connect your first client
         </Link>
       </div>
     </section>

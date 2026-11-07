@@ -8,19 +8,19 @@ const cards: { color: MascotColor; shape: MascotShape; title: string; body: stri
     color: 'amber',
     shape: 'squircle',
     title: 'Remote MCP server',
-    body: 'Your Bots call one hosted endpoint. No local machine. No keys anywhere. Secure by default.',
+    body: 'One hosted endpoint for all your Bots. No local machine, no private keys on your device. Always on and secure by design.',
   },
   {
     color: 'lagoon',
     shape: 'circle',
-    title: 'Bots sign. You set the limits.',
-    body: 'Use email to get a Privy wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
+    title: 'Privy Delegated Signing',
+    body: 'Use email to get a bot wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
   },
   {
     color: 'moss',
     shape: 'pebble',
-    title: 'Works with all LLMs',
-    body: 'Compatible with Claude, GPT, and other AI agents right out of the box. Works with Wayfind Cloud and any MCP client.',
+    title: 'Every model. Every agent.',
+    body: 'Compatible with Claude, Grok Bot, and others right out of the box. Works with Wayfind Cloud and any MCP client.',
   },
 ];
 

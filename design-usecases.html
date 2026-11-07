@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Use cases — 5 options</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: { extend: {
+    colors: { navy: '#0E1B2C', cta: '#2F7BFF', heroslate: '#38506B', bamber: '#F5A524', bmoss: '#7BA05B', blagoon: '#2BB3B1', bcoral: '#E26D5A', bgrape: '#8B5CF6', ice: '#E9F1FA', thread: '#F7FAFD' },
+    fontFamily: { brico: ['"Bricolage Grotesque"', 'sans-serif'] },
+  } }
+};
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;700;800&display=swap" rel="stylesheet" />
+<style>body { font-family: 'Bricolage Grotesque', sans-serif; }</style>
+</head>
+<body class="text-navy p-8 space-y-12 max-w-6xl mx-auto" style="background:#F7FAFD;">
+
+<!-- shared copy
+Eyebrow: WHAT YOUR BOTS CAN DO
+Title: Give your Bots onchain superpowers.
+Sub: From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.
+Cards:
+1 Wallet Operations — Check balances, track transactions and send tokens.
+2 DEX Swaps — Find routes and swap tokens through OKX DEX.
+3 Stablecoin Finance — Bridge, swap stablecoins and access supported lending protocols.
+4 DeFi & Earn — Deposit supported assets into lending protocols.
+-->
+
+<!-- ============ OPTION 1: Dark visual cards ============ -->
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-heroslate mb-2">Option 1 — Dark visual cards</p>
+<section class="rounded-3xl bg-navy px-6 py-14 text-white">
+<div class="mx-auto max-w-5xl">
+<p class="text-sm font-bold uppercase tracking-wider text-bamber">What your Bots can do</p>
+<h2 class="mt-3 text-4xl font-extrabold tracking-tight">Give your Bots onchain superpowers.</h2>
+<p class="mt-4 max-w-2xl text-white/70">From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.</p>
+<div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+<div class="rounded-2xl p-5" style="background: linear-gradient(150deg,#1B2A4A,#2F7BFF);"><p class="font-mono text-xs font-bold text-bamber">WALLET</p><p class="mt-2 text-lg font-bold">Wallet Operations</p><p class="mt-1 text-sm text-white/75">Check balances, track transactions and send tokens.</p></div>
+<div class="rounded-2xl p-5" style="background: linear-gradient(150deg,#3A2A10,#F5A524);"><p class="font-mono text-xs font-bold text-navy">SWAP</p><p class="mt-2 text-lg font-bold">DEX Swaps</p><p class="mt-1 text-sm text-white/85">Find routes and swap tokens through OKX DEX.</p></div>
+<div class="rounded-2xl p-5" style="background: linear-gradient(150deg,#0E3A3A,#2BB3B1);"><p class="font-mono text-xs font-bold text-white">USDC</p><p class="mt-2 text-lg font-bold">Stablecoin Finance</p><p class="mt-1 text-sm text-white/85">Bridge, swap stablecoins and access supported lending protocols.</p></div>
+<div class="rounded-2xl p-5" style="background: linear-gradient(150deg,#2A1B4A,#8B5CF6);"><p class="font-mono text-xs font-bold text-bamber">EARN</p><p class="mt-2 text-lg font-bold">DeFi &amp; Earn</p><p class="mt-1 text-sm text-white/75">Deposit supported assets into lending protocols.</p></div>
+</div>
+</div>
+</section>
+</div>
+
+<!-- ============ OPTION 2: Light icon tiles ============ -->
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-heroslate mb-2">Option 2 — Light icon tiles</p>
+<section class="rounded-3xl border border-navy/10 bg-white px-6 py-14">
+<div class="mx-auto max-w-5xl">
+<p class="text-sm font-bold uppercase tracking-wider text-cta">What your Bots can do</p>
+<h2 class="mt-3 text-4xl font-extrabold tracking-tight">Give your Bots onchain superpowers.</h2>
+<p class="mt-4 max-w-2xl text-lg text-heroslate">From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.</p>
+<div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+<div class="rounded-2xl border border-navy/10 bg-ice p-5"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-cta text-xl font-bold text-white">◈</span><p class="mt-4 font-bold">Wallet Operations</p><p class="mt-1 text-sm text-heroslate">Check balances, track transactions and send tokens.</p></div>
+<div class="rounded-2xl border border-navy/10 bg-ice p-5"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-bamber text-xl font-bold text-navy">⇄</span><p class="mt-4 font-bold">DEX Swaps</p><p class="mt-1 text-sm text-heroslate">Find routes and swap tokens through OKX DEX.</p></div>
+<div class="rounded-2xl border border-navy/10 bg-ice p-5"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-blagoon text-xl font-bold text-white">$</span><p class="mt-4 font-bold">Stablecoin Finance</p><p class="mt-1 text-sm text-heroslate">Bridge, swap stablecoins and access supported lending protocols.</p></div>
+<div class="rounded-2xl border border-navy/10 bg-ice p-5"><span class="grid h-11 w-11 place-items-center rounded-2xl bg-bgrape text-xl font-bold text-white">%</span><p class="mt-4 font-bold">DeFi &amp; Earn</p><p class="mt-1 text-sm text-heroslate">Deposit supported assets into lending protocols.</p></div>
+</div>
+</div>
+</section>
+</div>
+
+<!-- ============ OPTION 3: Numbered editorial ============ -->
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-heroslate mb-2">Option 3 — Numbered editorial</p>
+<section class="rounded-3xl px-6 py-14" style="background: linear-gradient(180deg,#E9F1FA,#FFFFFF);">
+<div class="mx-auto max-w-5xl">
+<p class="text-sm font-bold uppercase tracking-wider text-cta">What your Bots can do</p>
+<h2 class="mt-3 text-4xl font-extrabold tracking-tight">Give your Bots onchain superpowers.</h2>
+<p class="mt-4 max-w-2xl text-lg text-heroslate">From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.</p>
+<div class="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+<div class="border-t-2 border-cta pt-4"><p class="font-mono text-sm font-bold text-cta">01</p><p class="mt-1 font-bold">Wallet Operations</p><p class="mt-1 text-sm text-heroslate">Check balances, track transactions and send tokens.</p></div>
+<div class="border-t-2 border-bamber pt-4"><p class="font-mono text-sm font-bold text-bamber">02</p><p class="mt-1 font-bold">DEX Swaps</p><p class="mt-1 text-sm text-heroslate">Find routes and swap tokens through OKX DEX.</p></div>
+<div class="border-t-2 border-blagoon pt-4"><p class="font-mono text-sm font-bold text-blagoon">03</p><p class="mt-1 font-bold">Stablecoin Finance</p><p class="mt-1 text-sm text-heroslate">Bridge, swap stablecoins and access supported lending protocols.</p></div>
+<div class="border-t-2 border-bgrape pt-4"><p class="font-mono text-sm font-bold text-bgrape">04</p><p class="mt-1 font-bold">DeFi &amp; Earn</p><p class="mt-1 text-sm text-heroslate">Deposit supported assets into lending protocols.</p></div>
+</div>
+</div>
+</section>
+</div>
+
+<!-- ============ OPTION 4: Bento feature grid ============ -->
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-heroslate mb-2">Option 4 — Bento grid (hero + stack)</p>
+<section class="rounded-3xl bg-navy px-6 py-14 text-white">
+<div class="mx-auto max-w-5xl">
+<p class="text-sm font-bold uppercase tracking-wider text-bamber">What your Bots can do</p>
+<h2 class="mt-3 text-4xl font-extrabold tracking-tight">Give your Bots onchain superpowers.</h2>
+<p class="mt-4 max-w-2xl text-white/70">From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.</p>
+<div class="mt-10 grid gap-4 lg:grid-cols-2">
+<div class="rounded-2xl p-6" style="background: linear-gradient(135deg,#2F7BFF,#2BB3B1);"><p class="text-lg font-bold">Wallet Operations →</p><p class="mt-1 text-sm text-white/85">Check balances, track transactions and send tokens. The everyday core every bot starts with.</p></div>
+<div class="grid gap-4">
+<div class="rounded-2xl bg-white/5 p-5"><p class="font-bold">DEX Swaps →</p><p class="mt-1 text-sm text-white/70">Find routes and swap tokens through OKX DEX.</p></div>
+<div class="rounded-2xl bg-white/5 p-5"><p class="font-bold">Stablecoin Finance →</p><p class="mt-1 text-sm text-white/70">Bridge, swap stablecoins and access supported lending protocols.</p></div>
+<div class="rounded-2xl bg-white/5 p-5"><p class="font-bold">DeFi &amp; Earn →</p><p class="mt-1 text-sm text-white/70">Deposit supported assets into lending protocols.</p></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+
+<!-- ============ OPTION 5: Minimal bordered rows ============ -->
+<div>
+<p class="text-xs font-bold uppercase tracking-wider text-heroslate mb-2">Option 5 — Minimal rows</p>
+<section class="rounded-3xl border border-navy/10 bg-white px-6 py-14">
+<div class="mx-auto max-w-4xl">
+<p class="text-sm font-bold uppercase tracking-wider text-cta">What your Bots can do</p>
+<h2 class="mt-3 text-4xl font-extrabold tracking-tight">Give your Bots onchain superpowers.</h2>
+<p class="mt-4 max-w-2xl text-lg text-heroslate">From everyday wallet operations to DeFi strategies, your Bots can do more than just read blockchain data.</p>
+<div class="mt-10 divide-y divide-navy/10 border-y border-navy/10">
+<div class="flex items-center gap-4 py-4"><span class="rounded-full bg-ice px-3 py-1 font-mono text-xs font-bold text-cta">01</span><div><p class="font-bold">Wallet Operations</p><p class="text-sm text-heroslate">Check balances, track transactions and send tokens.</p></div></div>
+<div class="flex items-center gap-4 py-4"><span class="rounded-full bg-ice px-3 py-1 font-mono text-xs font-bold text-cta">02</span><div><p class="font-bold">DEX Swaps</p><p class="text-sm text-heroslate">Find routes and swap tokens through OKX DEX.</p></div></div>
+<div class="flex items-center gap-4 py-4"><span class="rounded-full bg-ice px-3 py-1 font-mono text-xs font-bold text-cta">03</span><div><p class="font-bold">Stablecoin Finance</p><p class="text-sm text-heroslate">Bridge, swap stablecoins and access supported lending protocols.</p></div></div>
+<div class="flex items-center gap-4 py-4"><span class="rounded-full bg-ice px-3 py-1 font-mono text-xs font-bold text-cta">04</span><div><p class="font-bold">DeFi &amp; Earn</p><p class="text-sm text-heroslate">Deposit supported assets into lending protocols.</p></div></div>
+</div>
+</div>
+</section>
+</div>
+
+</body>
+</html>
