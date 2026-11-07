@@ -22,9 +22,13 @@ const TITLES: Record<string, { title: string; hint: string }> = {
     title: 'Authorization',
     hint: 'Approve what your AI Bots may do. Limits and allowlists live here.',
   },
+  '/app/balances': {
+    title: 'Balances',
+    hint: 'What your bot wallets hold. Funding starts here.',
+  },
   '/app/logs': {
     title: 'Logs',
-    hint: 'Every delegated transaction lands here once the gateway is live.',
+    hint: 'Activity performed through the MCP module, for monitoring and audit.',
   },
 };
 

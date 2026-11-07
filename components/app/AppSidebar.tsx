@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronsUpDown, Plug, ScrollText, ShieldCheck, Wrench } from 'lucide-react';
+import { ChevronsUpDown, Plug, ScrollText, ShieldCheck, Wallet, Wrench } from 'lucide-react';
 import Mascot from '@/components/Mascot';
 import AccountModal from './AccountModal';
 
@@ -11,6 +11,7 @@ const NAV: { href: string; label: string; icon: typeof Wrench }[] = [
   { href: '/app/tools', label: 'Tools', icon: Wrench },
   { href: '/app/connect', label: 'Connect', icon: Plug },
   { href: '/app/authorization', label: 'Authorization', icon: ShieldCheck },
+  { href: '/app/balances', label: 'Balances', icon: Wallet },
   { href: '/app/logs', label: 'Logs', icon: ScrollText },
 ];
 

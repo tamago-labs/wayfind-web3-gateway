@@ -6,11 +6,10 @@ import { ArrowRight, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Mascot from '@/components/Mascot';
 
-// Nav anchors: #how #usecases, plus Wayfind Cloud (external).
-const navLinks: { href: string; label: string; external?: boolean }[] = [
+// Nav anchors: #how #usecases. Dashboard + Wayfind Cloud are pinned after.
+const navLinks: { href: string; label: string }[] = [
   { href: '/#how', label: 'How it works' },
   { href: '/#usecases', label: 'Use cases' },
-  { href: 'https://www.wayfind.click', label: 'Wayfind Cloud', external: true },
 ];
 
 export function Logo() {
@@ -35,30 +34,23 @@ export default function Header() {
         <Logo />
 
         <nav className="hidden items-center gap-8 text-[15px] font-medium text-navy md:flex">
-          {navLinks.map((link) =>
-            link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-60 transition-opacity"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link key={link.href} href={link.href} className="hover:opacity-60 transition-opacity">
-                {link.label}
-              </Link>
-            ),
-          )}
-          <Link
-            href="/app"
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:opacity-60 transition-opacity">
+              {link.label}
+            </Link>
+          ))}
+          <Link href="/app" className="hover:opacity-60 transition-opacity">
+            Dashboard
+          </Link>
+          <a
+            href="https://www.wayfind.click"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-1.5 hover:opacity-60 transition-opacity"
           >
-            Dashboard
+            Wayfind Cloud
             <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
-          </Link>
+          </a>
         </nav>
 
         {/* Enter App hidden for now — restore when /app goes live
@@ -86,31 +78,27 @@ export default function Header() {
             transition={{ duration: 0.2 }}
             className="md:hidden border-t border-navy/10 bg-herobg px-6 py-4 space-y-3 overflow-hidden"
           >
-            {navLinks.map((link) =>
-              link.external ? (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-[15px] font-medium text-navy hover:opacity-60"
-                >
-                  {link.label}
-                </a>
-              ) : (
-                <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="block text-[15px] font-medium text-navy hover:opacity-60">
-                  {link.label}
-                </Link>
-              ),
-            )}
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className="block text-[15px] font-medium text-navy hover:opacity-60">
+                {link.label}
+              </Link>
+            ))}
             <Link
               href="/app"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-1.5 text-[15px] font-medium text-navy hover:opacity-60"
+              className="block text-[15px] font-medium text-navy hover:opacity-60"
             >
               Dashboard
-              <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
             </Link>
+            <a
+              href="https://www.wayfind.click"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[15px] font-medium text-navy hover:opacity-60"
+            >
+              Wayfind Cloud
+              <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
+            </a>
             {/* Enter App hidden for now — restore when /app goes live
             <Link href="/app" onClick={() => setOpen(false)} className="block mt-2 text-center rounded-full bg-navy px-5 py-2.5 text-[15px] font-medium text-white">
               Enter App

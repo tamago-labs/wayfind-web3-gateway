@@ -195,7 +195,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               )}
               {wallets.length > 0 && (
                 <p className="text-xs text-heroslate">
-                  Your main wallet, created by Privy — fund it to get started.
+                  Your bot wallet, secured by Privy. Fund it to start transacting.
                 </p>
               )}
             </div>

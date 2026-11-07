@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { generateClient } from 'aws-amplify/data';
 import { usePrivy } from '@privy-io/react-auth';
@@ -49,6 +49,7 @@ interface Config {
   walletAddress?: string | null;
   network?: string | null;
   enabledTools: string[];
+  updatedAt: string;
 }
 
 export default function ToolsConsole() {
@@ -57,6 +58,12 @@ export default function ToolsConsole() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Serialize saves per URL: rapid toggles chain instead of racing on a
+  // stale enabledTools snapshot (the dropped-toggle bug). configsRef always
+  // holds the latest list for recomputing inside the chain.
+  const pending = useRef<Record<string, Promise<void>>>({});
+  const configsRef = useRef<Config[]>([]);
+  configsRef.current = configs;
 
   const embeddedIds = useMemo(() => {
     const accounts = (user?.linkedAccounts ?? []) as Array<{
@@ -78,14 +85,15 @@ export default function ToolsConsole() {
         (res.data ?? [])
           .filter((r) => embeddedIds.has(r.walletId))
           .map((r) => ({
-            serverIdHash: r.serverIdHash,
-            walletId: r.walletId,
-            walletAddress: r.walletAddress,
-            network: r.network,
-            enabledTools: (r.enabledTools ?? []).filter(
-              (t): t is string => typeof t === 'string',
-            ),
-          })),
+          serverIdHash: r.serverIdHash,
+          walletId: r.walletId,
+          walletAddress: r.walletAddress,
+          network: r.network,
+          enabledTools: (r.enabledTools ?? []).filter(
+            (t): t is string => typeof t === 'string',
+          ),
+          updatedAt: r.updatedAt,
+        })),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load tool settings.');
@@ -99,31 +107,39 @@ export default function ToolsConsole() {
     else setLoaded(true);
   }, [refresh, embeddedIds]);
 
-  const toggle = useCallback(
-    async (serverIdHash: string, tool: string, on: boolean) => {
-      const key = `${serverIdHash}:${tool}`;
-      setBusy(key);
-      setError(null);
-      try {
-        const current = configs.find((c) => c.serverIdHash === serverIdHash);
+  const toggle = useCallback(async (serverIdHash: string, tool: string, on: boolean) => {
+    const key = `${serverIdHash}:${tool}`;
+    setBusy(key);
+    setError(null);
+    try {
+      // Wait for any in-flight save on this URL, then recompute from the
+      // latest snapshot — never from a stale closure.
+      await (pending.current[serverIdHash] ?? Promise.resolve());
+      const run = (async () => {
+        const current = configsRef.current.find((c) => c.serverIdHash === serverIdHash);
         const next = on
           ? Array.from(new Set([...(current?.enabledTools ?? []), tool]))
           : (current?.enabledTools ?? []).filter((t) => t !== tool);
-        await dataClient.models.McpToolConfig.update({
+        const updated = await dataClient.models.McpToolConfig.update({
           serverIdHash,
           enabledTools: next,
         });
         setConfigs((cs) =>
-          cs.map((c) => (c.serverIdHash === serverIdHash ? { ...c, enabledTools: next } : c)),
+          cs.map((c) =>
+            c.serverIdHash === serverIdHash
+              ? { ...c, enabledTools: next, updatedAt: updated.data?.updatedAt ?? c.updatedAt }
+              : c,
+          ),
         );
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not save tool settings.');
-      } finally {
-        setBusy(null);
-      }
-    },
-    [configs],
-  );
+      })();
+      pending.current[serverIdHash] = run.catch(() => {});
+      await run;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save tool settings.');
+    } finally {
+      setBusy((b) => (b === key ? null : b));
+    }
+  }, []);
 
   if (!loaded) return <p className="mt-6 text-sm text-heroslate">Loading tools…</p>;
 
@@ -154,8 +170,8 @@ export default function ToolsConsole() {
             <p className="font-mono font-semibold" title={c.walletAddress ?? c.walletId}>
               {(c.walletAddress ?? c.walletId).slice(0, 8)}…
             </p>
-            <span className="rounded-full bg-navy/5 px-3 py-1 text-xs font-bold text-navy">
-              {c.network === 'mainnet' ? 'Mainnet' : 'Devnet'}
+            <span className="ml-auto shrink-0 font-mono text-[11px] text-heroslate" title={c.serverIdHash}>
+              URL ·{c.serverIdHash.slice(0, 6)} · {new Date(c.updatedAt).toLocaleString()}
             </span>
           </div>
           <div className="mt-4 space-y-4">
@@ -176,7 +192,7 @@ export default function ToolsConsole() {
                           <button
                             role="switch"
                             aria-checked={on}
-                            disabled={cat.alwaysOn || busy !== null}
+                            disabled={cat.alwaysOn || busy === key}
                             onClick={() => toggle(c.serverIdHash, t.name, !on)}
                             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
                               on ? 'bg-cta' : 'bg-navy/15'

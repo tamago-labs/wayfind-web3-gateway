@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Logs design options</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { navy: '#14213d', ice: '#f4f5f7', heroslate: '#6b7280', cta: '#4f46e5' },
+      fontFamily: { brico: ['"Bricolage Grotesque"', 'system-ui', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] },
+    },
+  },
+};
+</script>
+<style>
+  body { font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
+  .opt-label { position: sticky; top: 0; z-index: 10; }
+</style>
+</head>
+<body class="bg-white text-navy antialiased">
+
+<div class="mx-auto max-w-3xl px-6 py-10">
+  <p class="text-xs font-bold uppercase tracking-wider text-heroslate">Wayfind Web3 · Logs</p>
+  <h1 class="mt-1 text-3xl font-extrabold tracking-tight">5 design directions</h1>
+  <p class="mt-2 text-sm text-heroslate">View activity logs related to actions performed within the MCP module for monitoring and audit purposes.</p>
+  <p class="mt-1 text-sm text-heroslate">Same dataset, five presentations. Scroll and compare — pick one (or mix) and I'll build it into <code class="font-mono text-[13px]">/app/logs</code>.</p>
+
+  <!-- Shared filter bar: filters every option below live. -->
+  <div class="mt-6 rounded-3xl border border-navy/10 bg-white p-4 shadow-sm">
+    <div class="flex flex-wrap items-center gap-2">
+      <input id="f-search" type="text" placeholder="Search signature or address…" class="min-w-[180px] flex-1 rounded-full bg-ice px-4 py-2 text-sm outline-none placeholder:text-heroslate/70 focus:ring-2 focus:ring-cta/30" />
+      <select id="f-status" class="cursor-pointer rounded-full bg-ice px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-cta/30">
+        <option value="">All statuses</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="failed">Failed</option>
+      </select>
+      <select id="f-direction" class="cursor-pointer rounded-full bg-ice px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-cta/30">
+        <option value="">In + Out</option>
+        <option value="in">In</option>
+        <option value="out">Out</option>
+      </select>
+      <select id="f-network" class="cursor-pointer rounded-full bg-ice px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-cta/30">
+        <option value="">All networks</option>
+        <option value="devnet">Devnet</option>
+        <option value="mainnet">Mainnet</option>
+      </select>
+      <select id="f-range" class="cursor-pointer rounded-full bg-navy px-3 py-2 text-sm font-semibold text-white outline-none">
+        <option value="">All time</option>
+        <option value="15">Last 15 mins</option>
+        <option value="30">Last 30 mins</option>
+        <option value="60">Last 1 hour</option>
+        <option value="180">Last 3 hours</option>
+        <option value="720">Last 12 hours</option>
+        <option value="today">Today</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="4320">Last 3 days</option>
+        <option value="10080">Last 7 days</option>
+        <option value="custom">Custom range…</option>
+      </select>
+    </div>
+    <div id="f-custom" class="mt-2 hidden items-center gap-2 text-sm">
+      <input id="f-from" type="datetime-local" class="rounded-full bg-ice px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cta/30" />
+      <span class="text-heroslate">to</span>
+      <input id="f-to" type="datetime-local" class="rounded-full bg-ice px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cta/30" />
+    </div>
+    <p id="f-count" class="mt-2 text-xs text-heroslate">…</p>
+  </div>
+  <script>
+    const state = { q: '', status: '', direction: '', network: '', range: '', from: '', to: '' };
+    const $ = (id) => document.getElementById(id);
+    $('f-search').addEventListener('input', (e) => { state.q = e.target.value.toLowerCase(); apply(); });
+    [['f-status', 'status'], ['f-direction', 'direction'], ['f-network', 'network'], ['f-range', 'range']].forEach(([id, key]) => {
+      $(id).addEventListener('change', (e) => {
+        state[key] = e.target.value;
+        const custom = $('f-custom');
+        const show = state.range === 'custom';
+        custom.classList.toggle('hidden', !show);
+        custom.classList.toggle('flex', show);
+        apply();
+      });
+    });
+    $('f-from').addEventListener('change', (e) => { state.from = e.target.value; apply(); });
+    $('f-to').addEventListener('change', (e) => { state.to = e.target.value; apply(); });
+    function inRange(el) {
+      const r = state.range;
+      if (!r) return true;
+      if (r === 'today') return el.dataset.day === 'today';
+      if (r === 'yesterday') return el.dataset.day === 'yesterday';
+      if (r === 'custom') {
+        if (!state.from || !state.to) return true;
+        const ts = Date.now() - parseFloat(el.dataset.age || '0') * 60000;
+        return ts >= new Date(state.from).getTime() && ts <= new Date(state.to).getTime();
+      }
+      return parseFloat(el.dataset.age || '0') <= parseFloat(r);
+    }
+    function apply() {
+      let shown = 0, total = 0;
+      document.querySelectorAll('[data-tx]').forEach((el) => {
+        total++;
+        const hay = (el.dataset.search || '').toLowerCase();
+        const ok =
+          (!state.q || hay.includes(state.q)) &&
+          (!state.status || el.dataset.status === state.status) &&
+          (!state.direction || el.dataset.direction === state.direction) &&
+          (!state.network || el.dataset.network === state.network) &&
+          inRange(el);
+        el.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      document.getElementById('f-count').textContent = `Showing ${shown} of ${total}`;
+    }
+    apply();
+  </script>
+
+  <!-- ============ OPTION 1: TABLE ============ -->
+  <div class="opt-label mt-12 bg-white/95 py-3 backdrop-blur">
+    <span class="rounded-full bg-navy px-3 py-1 text-xs font-bold text-white">Option 1 · Table</span>
+    <span class="ml-2 text-sm text-heroslate">Dense, scannable, trader-terminal feel. Best for power users with volume.</span>
+  </div>
+  <div class="mt-3 overflow-x-auto rounded-3xl border border-navy/10">
+    <table class="w-full min-w-[560px] text-left text-sm">
+      <thead>
+        <tr class="border-b border-navy/10 bg-ice text-xs uppercase tracking-wider text-heroslate">
+          <th class="px-4 py-3 font-bold">Signature</th>
+          <th class="px-4 py-3 font-bold">Direction</th>
+          <th class="px-4 py-3 text-right font-bold">Amount</th>
+          <th class="px-4 py-3 font-bold">Status</th>
+          <th class="px-4 py-3 text-right font-bold">Time</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-navy/5">
+        <tr class="hover:bg-ice/60" data-tx data-status="confirmed" data-direction="in" data-network="devnet" data-age="2" data-day="today" data-search="3dmiKzVDfqq2Eae5AZkg74a5aduxLYvnQEdYGQvbKQXgM68K5qcD3hR2i2QRBrBjV4MfybHMHqADaQ9KN8uWsdf1 7xKp9s in">
+          <td class="px-4 py-3 font-mono text-[13px]">3dmiKz…bR2i <span class="ml-1 rounded bg-navy/5 px-1.5 py-0.5 text-[11px] text-heroslate">devnet</span></td>
+          <td class="px-4 py-3"><span class="font-bold text-emerald-600">↓ In</span> <span class="text-heroslate">from 7xKp…9s</span></td>
+          <td class="px-4 py-3 text-right font-bold">+0.001 SOL</td>
+          <td class="px-4 py-3"><span class="rounded-full bg-navy/5 px-2.5 py-1 text-xs font-bold">Confirmed</span></td>
+          <td class="px-4 py-3 text-right text-heroslate">2m ago</td>
+        </tr>
+        <tr class="hover:bg-ice/60" data-tx data-status="confirmed" data-direction="out" data-network="devnet" data-age="18" data-day="today" data-search="4epdiHnuJmbPx49xdUfQgzBiBxQL1jE7JJmoRuvruTbreHaYs2r1nJ6jVbUM2p5L1A1auSgx ndKHVM2S out">
+          <td class="px-4 py-3 font-mono text-[13px]">4epdiH…NJEbj</td>
+          <td class="px-4 py-3"><span class="font-bold text-cta">↑ Out</span> <span class="text-heroslate">to ndKH…VM2S</span></td>
+          <td class="px-4 py-3 text-right font-bold">−0.000001 SOL</td>
+          <td class="px-4 py-3"><span class="rounded-full bg-navy/5 px-2.5 py-1 text-xs font-bold">Confirmed</span></td>
+          <td class="px-4 py-3 text-right text-heroslate">18m ago</td>
+        </tr>
+        <tr class="hover:bg-ice/60" data-tx data-status="failed" data-direction="out" data-network="devnet" data-age="65" data-day="today" data-search="2U5ydSfeVFpx49HgagqfGzmaBovbJskxdUfQgzBiBxQL1jE7JJmoRuvruTbreHaYs2r1nJ6jVbUM2p5L1A1auSgx ndKHVM2S out failed">
+          <td class="px-4 py-3 font-mono text-[13px]">2U5ydS…Sgx <span class="ml-1 rounded bg-navy/5 px-1.5 py-0.5 text-[11px] text-heroslate">devnet</span></td>
+          <td class="px-4 py-3"><span class="font-bold text-cta">↑ Out</span> <span class="text-heroslate">to ndKH…VM2S</span></td>
+          <td class="px-4 py-3 text-right font-bold">−0.000001 SOL</td>
+          <td class="px-4 py-3"><span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-600">Failed</span></td>
+          <td class="px-4 py-3 text-right text-heroslate">1h ago</td>
+        </tr>
+        <tr class="hover:bg-ice/60" data-tx data-status="confirmed" data-direction="in" data-network="mainnet" data-age="1250" data-day="yesterday" data-search="9fWwVpQmT2z Fg6Ne3Yj in mainnet">
+          <td class="px-4 py-3 font-mono text-[13px]">9fWwVp…QmT2z <span class="ml-1 rounded bg-cta/10 px-1.5 py-0.5 text-[11px] font-bold text-cta">mainnet</span></td>
+          <td class="px-4 py-3"><span class="font-bold text-emerald-600">↓ In</span> <span class="text-heroslate">from Fg6N…e3Yj</span></td>
+          <td class="px-4 py-3 text-right font-bold">+0.25 SOL</td>
+          <td class="px-4 py-3"><span class="rounded-full bg-navy/5 px-2.5 py-1 text-xs font-bold">Confirmed</span></td>
+          <td class="px-4 py-3 text-right text-heroslate">Yesterday</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ OPTION 2: CARDS (refined current) ============ -->
+  <div class="opt-label mt-12 bg-white/95 py-3 backdrop-blur">
+    <span class="rounded-full bg-navy px-3 py-1 text-xs font-bold text-white">Option 2 · Cards+</span>
+    <span class="ml-2 text-sm text-heroslate">Current direction, refined: direction icon, amount hero, fee footnote.</span>
+  </div>
+  <div class="mt-3 space-y-3">
+    <div class="rounded-3xl border border-navy/10 bg-white p-5 shadow-sm" data-tx data-status="confirmed" data-direction="in" data-network="devnet" data-age="2" data-day="today" data-search="3dmiKzVDfqq2Eae5AZkg74a5aduxLYvnQEdYGQvbKQXgM68K5qcD3hR2i2QRBrBjV4MfybHMHqADaQ9KN8uWsdf1 7xKp9s in">
+      <div class="flex items-center gap-3">
+        <span class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-lg">↓</span>
+        <div class="min-w-0">
+          <p class="font-bold">Received 0.001 SOL <span class="ml-1 rounded bg-navy/5 px-1.5 py-0.5 text-[11px] font-mono font-semibold text-heroslate">devnet</span></p>
+          <p class="truncate font-mono text-xs text-heroslate" title="3dmiKzVDfqq2Eae5AZkg74a5aduxLYvnQEdYGQvbKQXgM68K5qcD3hR2i2QRBrBjV4MfybHMHqADaQ9KN8uWsdf1">3dmiKzVD…df1 · from 7xKp…9s</p>
+        </div>
+        <span class="ml-auto shrink-0 rounded-full bg-navy/5 px-3 py-1 text-xs font-bold">Confirmed</span>
+      </div>
+      <div class="mt-3 flex items-center gap-3 text-xs text-heroslate">
+        <span>2 min ago</span><span>·</span><span>fee 0.000005 SOL</span>
+        <a href="#" class="font-semibold text-cta hover:underline">Explorer ↗</a>
+      </div>
+    </div>
+    <div class="rounded-3xl border border-navy/10 bg-white p-5 shadow-sm" data-tx data-status="failed" data-direction="out" data-network="devnet" data-age="18" data-day="today" data-search="4epdiHnuJmbPx49xdUfQgzBiBxQL1jE7JJmoRuvruTbreHaYs2r1nJ6jVbUM2p5L1A1auSgx ndKHVM2S out failed">
+      <div class="flex items-center gap-3">
+        <span class="grid h-10 w-10 place-items-center rounded-2xl bg-cta/10 text-lg text-cta">↑</span>
+        <div class="min-w-0">
+          <p class="font-bold">Sent 0.000001 SOL</p>
+          <p class="truncate font-mono text-xs text-heroslate">4epdiHnu…Ebj · to ndKH…VM2S</p>
+        </div>
+        <span class="ml-auto shrink-0 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">Failed</span>
+      </div>
+      <div class="mt-3 flex items-center gap-3 text-xs text-heroslate">
+        <span>18 min ago</span><span>·</span><span class="text-red-600">insufficient funds for fee</span>
+        <a href="#" class="font-semibold text-cta hover:underline">Explorer ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OPTION 3: TIMELINE ============ -->
+  <div class="opt-label mt-12 bg-white/95 py-3 backdrop-blur">
+    <span class="rounded-full bg-navy px-3 py-1 text-xs font-bold text-white">Option 3 · Timeline</span>
+    <span class="ml-2 text-sm text-heroslate">Story feel: vertical rail, grouped by day. Best for “what did my bot do”.</span>
+  </div>
+  <div class="mt-3 rounded-3xl border border-navy/10 bg-white p-6 shadow-sm">
+    <p class="text-xs font-bold uppercase tracking-wider text-heroslate">Today</p>
+    <div class="mt-3 space-y-0 border-l-2 border-navy/10 pl-0">
+      <div class="relative pb-5 pl-6" data-tx data-status="confirmed" data-direction="in" data-network="devnet" data-age="2" data-day="today" data-search="3dmiKzVD in 7xKp9s">
+        <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-50"></span>
+        <p class="text-sm"><span class="font-bold">+0.001 SOL</span> received from <span class="font-mono text-[13px]">7xKp…9s</span></p>
+        <p class="mt-0.5 font-mono text-xs text-heroslate">3dmiKzVD…df1 · 2 min ago · <a href="#" class="text-cta hover:underline">Explorer ↗</a></p>
+      </div>
+      <div class="relative pb-5 pl-6" data-tx data-status="confirmed" data-direction="out" data-network="devnet" data-age="18" data-day="today" data-search="4epdiHnu out ndKHVM2S">
+        <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-cta ring-4 ring-cta/10"></span>
+        <p class="text-sm"><span class="font-bold">−0.000001 SOL</span> sent to <span class="font-mono text-[13px]">ndKH…VM2S</span></p>
+        <p class="mt-0.5 font-mono text-xs text-heroslate">4epdiHnu…Ebj · 18 min ago · <a href="#" class="text-cta hover:underline">Explorer ↗</a></p>
+      </div>
+      <div class="relative pl-6" data-tx data-status="failed" data-direction="out" data-network="devnet" data-age="65" data-day="today" data-search="2U5ydSfe out failed insufficient">
+        <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-red-500 ring-4 ring-red-50"></span>
+        <p class="text-sm"><span class="font-bold">−0.000001 SOL</span> failed <span class="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">insufficient funds</span></p>
+        <p class="mt-0.5 font-mono text-xs text-heroslate">2U5ydSfe…Sgx · 1 hr ago</p>
+      </div>
+    </div>
+    <p class="mt-6 text-xs font-bold uppercase tracking-wider text-heroslate">Yesterday</p>
+    <div class="mt-3 space-y-0 border-l-2 border-navy/10 pl-0">
+      <div class="relative pl-6" data-tx data-status="confirmed" data-direction="in" data-network="mainnet" data-age="1250" data-day="yesterday" data-search="9fWwVp in mainnet Fg6Ne3Yj">
+        <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-emerald-500 ring-4 ring-emerald-50"></span>
+        <p class="text-sm"><span class="font-bold">+0.25 SOL</span> received <span class="ml-1 rounded bg-cta/10 px-1.5 py-0.5 text-[11px] font-bold text-cta">mainnet</span></p>
+        <p class="mt-0.5 font-mono text-xs text-heroslate">9fWwVp…T2z · 4:12 PM</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OPTION 4: STATEMENT ============ -->
+  <div class="opt-label mt-12 bg-white/95 py-3 backdrop-blur">
+    <span class="rounded-full bg-navy px-3 py-1 text-xs font-bold text-white">Option 4 · Statement</span>
+    <span class="ml-2 text-sm text-heroslate">Bank-statement feel: running balance, credit/debit columns. Best for trust + accounting.</span>
+  </div>
+  <div class="mt-3 overflow-hidden rounded-3xl border border-navy/10 shadow-sm">
+    <div class="flex items-end justify-between bg-navy px-5 py-4 text-white">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-white/60">Devnet balance</p>
+        <p class="text-2xl font-extrabold">0.500 SOL</p>
+      </div>
+      <p class="font-mono text-xs text-white/60">ndKH…VM2S</p>
+    </div>
+    <div class="divide-y divide-navy/5 bg-white text-sm">
+      <div class="flex items-center gap-3 px-5 py-3" data-tx data-status="confirmed" data-direction="in" data-network="devnet" data-age="2" data-day="today" data-search="bot payout 3dmiKz in">
+        <div class="min-w-0 flex-1"><p class="font-bold">Bot payout</p><p class="font-mono text-xs text-heroslate">Nov 7 · 3dmiKz…df1</p></div>
+        <p class="font-mono font-semibold text-emerald-600">+0.001</p>
+        <p class="w-20 text-right font-mono text-heroslate">0.500</p>
+      </div>
+      <div class="flex items-center gap-3 px-5 py-3" data-tx data-status="confirmed" data-direction="out" data-network="devnet" data-age="18" data-day="today" data-search="test transfer 4epdiH out">
+        <div class="min-w-0 flex-1"><p class="font-bold">Test transfer</p><p class="font-mono text-xs text-heroslate">Nov 7 · 4epdiH…Ebj</p></div>
+        <p class="font-mono font-semibold text-navy">−0.000001</p>
+        <p class="w-20 text-right font-mono text-heroslate">0.499</p>
+      </div>
+      <div class="flex items-center gap-3 bg-red-50/40 px-5 py-3" data-tx data-status="failed" data-direction="out" data-network="devnet" data-age="65" data-day="today" data-search="test transfer 2U5ydS out failed">
+        <div class="min-w-0 flex-1"><p class="font-bold">Test transfer <span class="ml-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">Failed</span></p><p class="font-mono text-xs text-heroslate">Nov 7 · 2U5ydS…Sgx</p></div>
+        <p class="font-mono font-semibold text-heroslate">−0.000001</p>
+        <p class="w-20 text-right font-mono text-heroslate">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ OPTION 5: GROUPED COMPACT ============ -->
+  <div class="opt-label mt-12 bg-white/95 py-3 backdrop-blur">
+    <span class="rounded-full bg-navy px-3 py-1 text-xs font-bold text-white">Option 5 · Grouped compact</span>
+    <span class="ml-2 text-sm text-heroslate">Day headers + one-line rows, expandable. Best density without table stiffness.</span>
+  </div>
+  <div class="mt-3 rounded-3xl border border-navy/10 bg-white p-2 shadow-sm">
+    <p class="px-3 pb-1 pt-3 text-xs font-bold uppercase tracking-wider text-heroslate">Today · 3 transactions</p>
+    <details class="group rounded-2xl open:bg-ice/60" open data-tx data-status="confirmed" data-direction="in" data-network="devnet" data-age="2" data-day="today" data-search="3dmiKz in">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-sm">↓</span>
+        <p class="font-mono text-sm font-semibold">3dmiKz…df1</p>
+        <p class="ml-auto text-sm font-bold text-emerald-600">+0.001 SOL</p>
+        <span class="text-heroslate transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="px-3 pb-3 pl-[52px] text-xs text-heroslate">
+        <p>From <span class="font-mono">7xKp…9s</span> · 2 min ago · fee 0.000005 SOL · Confirmed</p>
+        <a href="#" class="font-semibold text-cta hover:underline">View on Explorer ↗</a>
+      </div>
+    </details>
+    <details class="group rounded-2xl open:bg-ice/60" data-tx data-status="confirmed" data-direction="out" data-network="devnet" data-age="18" data-day="today" data-search="4epdiH out">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-cta/10 text-sm text-cta">↑</span>
+        <p class="font-mono text-sm font-semibold">4epdiH…Ebj</p>
+        <p class="ml-auto text-sm font-bold">−0.000001 SOL</p>
+        <span class="text-heroslate transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="px-3 pb-3 pl-[52px] text-xs text-heroslate">
+        <p>To <span class="font-mono">ndKH…VM2S</span> · 18 min ago · fee 0.000005 SOL · Confirmed</p>
+        <a href="#" class="font-semibold text-cta hover:underline">View on Explorer ↗</a>
+      </div>
+    </details>
+    <details class="group rounded-2xl open:bg-ice/60" data-tx data-status="failed" data-direction="out" data-network="devnet" data-age="65" data-day="today" data-search="2U5ydS out failed">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-red-50 text-sm text-red-600">!</span>
+        <p class="font-mono text-sm font-semibold">2U5ydS…Sgx</p>
+        <p class="ml-auto text-sm font-bold text-red-600">Failed</p>
+        <span class="text-heroslate transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="px-3 pb-3 pl-[52px] text-xs text-heroslate">
+        <p>Insufficient funds for fee · 1 hr ago</p>
+        <a href="#" class="font-semibold text-cta hover:underline">View on Explorer ↗</a>
+      </div>
+    </details>
+    <p class="px-3 pb-1 pt-4 text-xs font-bold uppercase tracking-wider text-heroslate">Yesterday · 1 transaction</p>
+    <details class="group rounded-2xl open:bg-ice/60" data-tx data-status="confirmed" data-direction="in" data-network="mainnet" data-age="1250" data-day="yesterday" data-search="9fWwVp in mainnet">
+      <summary class="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+        <span class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-sm">↓</span>
+        <p class="font-mono text-sm font-semibold">9fWwVp…T2z</p>
+        <p class="ml-auto text-sm font-bold text-emerald-600">+0.25 SOL</p>
+        <span class="text-heroslate transition-transform group-open:rotate-90">›</span>
+      </summary>
+      <div class="px-3 pb-3 pl-[52px] text-xs text-heroslate">
+        <p>From <span class="font-mono">Fg6N…e3Yj</span> · mainnet · 4:12 PM · Confirmed</p>
+        <a href="#" class="font-semibold text-cta hover:underline">View on Explorer ↗</a>
+      </div>
+    </details>
+  </div>
+
+  <div class="mt-12 rounded-3xl bg-ice p-5 text-sm text-heroslate">
+    <p class="font-bold text-navy">Notes for all options</p>
+    <p class="mt-1">Direction + amount need parsing the transaction (not just signatures) — fine on devnet volume, and the MCP <code class="font-mono text-[13px]">get_history</code> already returns this shape. Failed rows always expand to show the reason. Loading state for the winner: skeleton rows in the same shape.</p>
+  </div>
+</div>
+
+</body>
+</html>

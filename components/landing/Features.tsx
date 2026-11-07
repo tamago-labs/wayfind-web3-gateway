@@ -13,8 +13,8 @@ const cards: { color: MascotColor; shape: MascotShape; title: string; body: stri
   {
     color: 'lagoon',
     shape: 'circle',
-    title: "Your bot's wallet, by Privy",
-    body: 'Use email to get a wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
+    title: 'Bots sign. You set the limits.',
+    body: 'Use email to get a Privy wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
   },
   {
     color: 'moss',
