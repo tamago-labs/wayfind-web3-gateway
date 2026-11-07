@@ -12,7 +12,7 @@ import AppSidebar from '@/components/app/AppSidebar';
 const TITLES: Record<string, { title: string; hint: string }> = {
   '/app/tools': {
     title: 'Tools',
-    hint: 'The Web3 MCP your AI Bots call. Balances and signing arrive with the gateway.',
+    hint: 'Manage all configured services and their respective tools.',
   },
   '/app/connect': {
     title: 'Connect to Your Wayfind MCP Server',
