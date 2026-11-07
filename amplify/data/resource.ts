@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { wayfindApiFunction } from "../functions/wayfind-api/resource";
 import { proposeSignerFunction } from "../functions/propose-signer/resource";
 import { walletStateFunction } from "../functions/wallet-state/resource";
 import { revokeSignerFunction } from "../functions/revoke-signer/resource";
@@ -14,6 +15,19 @@ const schema = a.schema({
       plan: a.enum(["free", "starter", "premium", "enterprise"]),
     })
     .authorization((allow) => [allow.publicApiKey()]),
+
+  // One MCP server ID per wallet. The raw serverId is the credential (Zoho-style:
+  // it lives only in the /mcp/<serverId>/message URL); only its SHA-256 is stored.
+  // Client CRUD rides the same publicApiKey rule as UserProfile (unguessable hashes);
+  // the wayfind-api Lambda reads via IAM for message auth.
+  McpToolConfig: a
+    .model({
+      serverIdHash: a.string().required(),
+      walletId: a.string().required(),
+      enabledTools: a.string().array(),
+    })
+    .identifier(["serverIdHash"])
+    .authorization((allow) => [allow.publicApiKey(), allow.resource(wayfindApiFunction)]),
 
   ProposeSignerResult: a.customType({
     walletAddress: a.string(),

@@ -101,7 +101,7 @@ export async function handleMcp(req: McpHttpRequest): Promise<McpHttpResult> {
   if (!route) return { statusCode: 404, body: { ok: false, error: "Not found" } };
 
   // Unknown IDs are indistinguishable from dead ones — same 404, no hints.
-  const ctx = resolveContext(route.serverId);
+  const ctx = await resolveContext(route.serverId);
   if (!ctx) return { statusCode: 404, body: { ok: false, error: "Not found" } };
 
   // GET /mcp/{id} — human discovery doc (paste into Inspector first).

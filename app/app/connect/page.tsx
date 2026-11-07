@@ -1,6 +1,9 @@
+import McpAccessCard from '@/components/app/McpAccessCard';
+
 export default function ConnectPage() {
   return (
     <section className="mx-auto max-w-2xl space-y-4 pt-2">
+      <McpAccessCard />
       <div className="rounded-3xl border border-navy/10 bg-white p-6 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
           Solana · Devnet
