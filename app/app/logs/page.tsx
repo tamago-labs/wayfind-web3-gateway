@@ -245,6 +245,9 @@ export default function LogsPage() {
   }, [wallets, solanaHookWallets]);
 
   const refresh = useCallback(async () => {
+    // Reset every fetch (mount + wallet arrival) so the skeleton shows for
+    // the real load, not just the initial empty-wallets pass.
+    setLoaded(false);
     // Hold the skeleton a beat even on fast loads so it reads as intentional.
     const started = Date.now();
     const scopes = [
@@ -370,7 +373,9 @@ export default function LogsPage() {
       </div>
 
       {!loaded ? (
-        <div className="mt-3 overflow-hidden rounded-3xl border border-navy/10" aria-label="Loading">
+        <div className="mt-3" aria-label="Loading">
+          <p className="px-1 text-sm font-semibold text-heroslate">Loading activity…</p>
+          <div className="mt-2 overflow-hidden rounded-3xl border border-navy/10">
           <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-navy/10 bg-ice px-4 py-3 text-xs font-bold uppercase tracking-wider text-heroslate sm:grid-cols-[1fr_auto_auto_auto_auto]">
             <span>Signature</span>
             <span className="hidden text-right sm:block">Amount</span>
@@ -388,6 +393,7 @@ export default function LogsPage() {
               <div className="h-4 w-16 rounded-full bg-navy/10" />
             </div>
           ))}
+          </div>
         </div>
       ) : filtered.length === 0 ? (
         <div className="mt-3 rounded-3xl border border-dashed border-navy/20 p-6 text-sm text-heroslate">

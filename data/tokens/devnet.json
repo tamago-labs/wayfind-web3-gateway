@@ -1,0 +1,23 @@
+[
+  {
+    "mint": "11111111111111111111111111111111",
+    "symbol": "SOL",
+    "name": "Solana",
+    "logo": "/solana.png",
+    "kind": "native"
+  },
+  {
+    "mint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+    "symbol": "USDC",
+    "name": "USD Coin (devnet)",
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+    "kind": "stable"
+  },
+  {
+    "mint": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr",
+    "symbol": "EURC",
+    "name": "Euro Coin (devnet)",
+    "logo": null,
+    "kind": "stable"
+  }
+]

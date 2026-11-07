@@ -294,3 +294,47 @@ Documentation worth using as the implementation foundation:
 - [Policies & Controls](https://docs.privy.io/controls/policies/overview?utm_source=chatgpt.com)
 
 I'd now make Wayfind Web3 the project name and treat Owner/Signer delegation as its core security architecture, not just an implementation detail.
+
+---
+
+## 8. Implementation record (Nov 2026)
+
+Built on top of the architecture above. Deviations from the original plan are marked **DECISION**.
+
+### 8.1 Remote MCP endpoint (phases 1–4, live)
+
+- URL shape mirrors Zoho MCP: `POST /mcp/<serverId>/message` (Streamable HTTP JSON-RPC: `initialize`, `tools/list`, `tools/call`), plus `GET /mcp/<serverId>` discovery. The `serverId` (256-bit, SHA-256 stored) **is** the credential — one string to paste, regenerate = new path ID.
+- **DECISION:** per-wallet server IDs instead of wallet-ID-in-path. Rotation never touches the wallet.
+- Code layout (one file per concern, never a god-file): `amplify/functions/wayfind-api/mcp/{types,server,auth,registry}.ts`, `categories/{system,wallet,stocks,trading,payments}.ts`, `lib/{rpc,privy}.ts`. `handler.ts` only routes `rawPath`.
+- Phase 1: `ping/add/subtract/multiply/divide` (system, always on). Phase 2: `McpToolConfig` model + Connect-page issuance (generate/show-once/regenerate/revoke). Phase 3: `get_balance`, `get_history` (RPC reads, no signing). Phase 4: `send_sol` — real platform-signer sends via `privySignedRpc signAndSendTransaction`, mirroring `scripts/privy-tests/05-send-sol-devnet.ts` exactly.
+- **DECISION:** send_sol trusts the Privy default policy as the amount limit (no tool-side cap). First mainnet send must be a user-run dust test.
+- Proven live: handshake, tool calls, and real devnet sends from both the test wallet and a user wallet, all surfacing in Logs + explorer.
+
+### 8.2 /app console
+
+- Routed sidebar: Tools (category toggles persisted to `enabledTools`) · Connect (MCP URL issuance) · Authorization (platform-signer add/remove) · **Balances** (live SOL per wallet) · Logs (filterable table).
+- Login is **email-only** (`loginMethods: ['email']`, `chainType: 'solana-only'`); external wallets removed after Phantom failures. Wallets filtered to embedded (`walletClientType === 'privy'`).
+- Scope (Devnet/Mainnet) lives on `UserProfile.network`, toggled in the account modal. **MCP rows stamp `walletAddress` + `network` at issuance** — the Lambda cannot join wallet→profile, and switching scope does **not** restamp old URLs (regenerate instead). Logs/Balances read **both** networks and tag rows so scope switches never hide history.
+
+### 8.3 Backend deploy conventions (wayfind-cloud parity)
+
+- Function grants go **once at the end of the schema**, never per-model: `}).authorization((allow) => [allow.resource(wayfindApiFunction)]);` — per-model `allow.resource` broke synth (`$amplify/env/*` TS errors).
+- Lambda Data access requires the cloud triple: `getAmplifyDataClientConfig(env)` + `Amplify.configure(resourceConfig, libraryOptions)` + `generateClient<Schema>({ authMode: 'iam' })`, with `env` from `$amplify/env/<fn>`. Without it every lookup throws (fast 404s, ~2ms warm).
+- Secrets (`PRIVY_APP_SECRET`, `PRIVY_AUTH_PRIVATE_KEY`) via `secret()` + Amplify console; plain IDs via `process.env` capture.
+- Known failure mode: backend synth errors surface as `$amplify/env/* TS2307` — check your own schema/function changes first, not the env stubs.
+
+### 8.4 @solana/web3.js v3 gotchas (all hit on this project)
+
+- `blockTime`, `preBalances`/`postBalances` are **`bigint`** — normalize with `Number()` or time shows "—" and bigint division throws.
+- `getTransaction(..., { encoding: 'jsonParsed' })` still returns **compiled** instructions (`programIdIndex` + base58 `data`, programs in `indexToProgramIds` as a `Map<number, PublicKey>`). Resolve with `String(map.get(i))`; decode system transfers as u32 index `2` + u64 LE lamports (hand-rolled base58, no new dep).
+- Parsed `accountKeys` are plain strings in some paths, `PublicKey` instances in others — coerce all shapes (`string` / `{pubkey}` / `.toBase58()`).
+- Transaction construction must use property assignment (`tx.feePayer = …; tx.recentBlockhash = … as Blockhash`), not the v2 ctor — tsc rejects it even though tsx runs it fine.
+- `getTransaction` needs `maxSupportedTransactionVersion: 0` or versioned txs fail.
+- **Privy's `wallets/{id}/transactions` API does NOT index devnet** (`solana_devnet` unsupported) — RPC parsing stays mandatory for devnet history.
+
+### 8.5 RPC / data notes
+
+- Alchemy devnet (`NEXT_PUBLIC_SOLANA_DEVNET_RPC`) retains history the public endpoint prunes within hours — always verify against the same RPC the app uses.
+- `fetchScope` costs ~2 RPC calls per row (`getSignaturesForAddress` + `getTransaction`); fine at 10 rows, revisit with pagination/caching past that.
+- Logs table: Signature · Direction (transfer-derived, not fee-derived) · Amount (exact decoded lamports for SOL, honest labels otherwise) · Status · Time; row-click → explorer; filters for status/direction/network/time (no 15m/30m/3d options); skeleton holds ≥600ms so loading is perceptible.
+- Tool toggles save through a per-URL promise chain (rapid toggles used to drop writes); cards show `URL ·<id6> · <updated>` so regenerated rows are distinguishable.
