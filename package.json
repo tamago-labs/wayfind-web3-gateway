@@ -22,6 +22,7 @@
     "@solana/kit": "^8.6.0",
     "@solana/wallet-adapter-react": "^0.15.40",
     "@solana/web3.js": "^3.1.1",
+    "@solana/web3js-v1": "npm:@solana/web3.js@^1.99.0",
     "@stripe/stripe-js": "^10.2.1",
     "aws-amplify": "^6.6.6",
     "framer-motion": "^13.2.0",

@@ -1,5 +1,6 @@
-import { Connection, PublicKey } from "@solana/web3.js";
-import { createSolanaAdapterFromProvider } from "@circle-fin/adapter-solana";
+// Circle kits bundle web3.js v1 (they call getRecentBlockhash, removed in
+// v3) — the adapter connection and provider keys must be v1 instances.
+import { Connection, PublicKey } from "@solana/web3js-v1";
 import { privySignedRpc } from "./privy";
 
 export type CircleNetwork = "mainnet" | "testnet";
@@ -12,7 +13,7 @@ export function circleChain(network: CircleNetwork): string {
 function rpcUrl(network: CircleNetwork): string {
   const url =
     network === "mainnet" ? process.env.SOLANA_MAINNET_RPC : process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC;
-  return url || "https://api.mainnet-beta.solana.com";
+  return url || (network === "mainnet" ? "https://api.mainnet-beta.solana.com" : "https://api.devnet.solana.com");
 }
 
 /**
@@ -50,17 +51,47 @@ function privyProvider(walletAddress: string, walletId: string) {
     disconnect: async () => {},
     signTransaction: signOne,
     signAllTransactions: async (txs: unknown[]) => Promise.all(txs.map(signOne)),
+    // Gateway spend signs a burn-intent message — Privy signs it remotely.
+    signMessage: async (message: Uint8Array) => {
+      const res = await privySignedRpc<{ data?: { signature?: string } }>(walletId, {
+        method: "signMessage",
+        params: { message: Buffer.from(message).toString("base64"), encoding: "base64" },
+      });
+      const sig = res.data?.signature;
+      if (!sig) throw new Error("Privy returned no message signature");
+      return { signature: new Uint8Array(Buffer.from(sig, "base64")) };
+    },
   };
 }
 
 /** Circle Solana adapter wired to the attached Privy wallet. */
 export async function circleAdapter(walletAddress: string, walletId: string, network: CircleNetwork) {
+  // NB: createSolanaAdapterFromProvider silently drops custom connections
+  // (it always builds per-chain defaults) — construct SolanaAdapter directly
+  // so reads and broadcasts use our RPC.
+  const { SolanaAdapter } = await import("@circle-fin/adapter-solana");
+  const { Solana, SolanaDevnet } = await import("@circle-fin/bridge-kit/chains");
   const connection = new Connection(rpcUrl(network), "confirmed");
-  return createSolanaAdapterFromProvider({
-    // provider type is wallet-standard-loose; our shape satisfies it at runtime.
-    provider: privyProvider(walletAddress, walletId) as never,
-    connection: connection as never,
-  });
+  const provider = privyProvider(walletAddress, walletId);
+  // Same provider-signer shape the factory builds (isProviderSigner flag
+  // selects the sign-then-broadcast path, keyed off our connection).
+  const signer = {
+    publicKey: provider.publicKey,
+    get secretKey() {
+      return new Uint8Array(0);
+    },
+    isProviderSigner: true,
+    signTransaction: provider.signTransaction,
+    signAllTransactions: provider.signAllTransactions,
+    signMessage: provider.signMessage,
+  };
+  return new SolanaAdapter(
+    { connection: connection as never, signer: signer as never },
+    {
+      addressContext: "user-controlled",
+      supportedChains: [(network === "mainnet" ? Solana : SolanaDevnet) as never],
+    },
+  );
 }
 
 /** Fresh Unified Balance kit context (sync static data, no network calls). */
