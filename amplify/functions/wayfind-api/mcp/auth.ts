@@ -1,8 +1,15 @@
 import { createHash } from "node:crypto";
+import { Amplify } from "aws-amplify";
 import { generateClient } from "aws-amplify/data";
+import { getAmplifyDataClientConfig } from "@aws-amplify/backend/function/runtime";
 import type { Schema } from "../../../data/resource";
 import type { ToolContext } from "./types";
 
+// Lambda has no amplify_outputs.json — endpoint and IAM credentials come from
+// the function's own runtime env (wired by the schema-level allow.resource
+// grant). Same pattern as wayfind-cloud's wayfind-api handler.
+const { resourceConfig, libraryOptions } = await getAmplifyDataClientConfig();
+Amplify.configure(resourceConfig, libraryOptions);
 const dataClient = generateClient<Schema>({ authMode: "iam" });
 
 export const hashServerId = (serverId: string): string =>
