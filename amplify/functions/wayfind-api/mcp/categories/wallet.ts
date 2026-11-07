@@ -1,4 +1,4 @@
-import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { PublicKey, SystemProgram, Transaction, type Blockhash } from "@solana/web3.js";
 import type { ToolContext, ToolDef } from "../types";
 import { getBalanceLamports, getBalanceSol, getHistory, getLatestBlockhash } from "../lib/rpc";
 import { signAndSend } from "../lib/privy";
@@ -96,10 +96,13 @@ export const walletTools: ToolDef[] = [
           isError: true,
         };
       }
-      const { blockhash } = { blockhash: await getLatestBlockhash(ctx.network) };
-      const tx = new Transaction({ feePayer: sender, recentBlockhash: blockhash }).add(
-        SystemProgram.transfer({ fromPubkey: sender, toPubkey: destination, lamports }),
-      );
+      const blockhash = await getLatestBlockhash(ctx.network);
+      // web3.js v3 ctor requires blockhash + lastValidBlockHeight — assign
+      // properties instead (same wire format script 05 proven at runtime).
+      const tx = new Transaction();
+      tx.feePayer = sender;
+      tx.recentBlockhash = blockhash as Blockhash;
+      tx.add(SystemProgram.transfer({ fromPubkey: sender, toPubkey: destination, lamports }));
       const serialized = Buffer.from(
         await tx.serialize({ requireAllSignatures: false, verifySignatures: false }),
       ).toString("base64");
