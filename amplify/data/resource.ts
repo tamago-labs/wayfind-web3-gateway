@@ -13,31 +13,49 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.publicApiKey()]),
 
+  ProposeSignerResult: a.customType({
+    walletAddress: a.string(),
+    signerId: a.string(),
+    signerName: a.string(),
+    policyId: a.string(),
+  }),
+
+  WalletStateResult: a.customType({
+    id: a.string(),
+    address: a.string(),
+    chainType: a.string(),
+    delegated: a.boolean(),
+    signerIds: a.string().array(),
+    policyIds: a.string().array(),
+  }),
+
+  RevokeSignerResult: a.customType({
+    walletId: a.string(),
+    address: a.string(),
+    revoked: a.boolean(),
+  }),
+
   proposeSigner: a
     .mutation()
     .arguments({ walletAddress: a.string().required() })
-    .returns(a.json())
+    .returns(a.ref("ProposeSignerResult"))
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(proposeSignerFunction)),
 
   walletState: a
     .query()
     .arguments({ walletId: a.string().required() })
-    .returns(a.json())
+    .returns(a.ref("WalletStateResult"))
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(walletStateFunction)),
 
   revokeSigner: a
     .mutation()
     .arguments({ walletId: a.string().required() })
-    .returns(a.json())
+    .returns(a.ref("RevokeSignerResult"))
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(revokeSignerFunction)),
-}).authorization((allow) => [
-  allow.resource(proposeSignerFunction),
-  allow.resource(walletStateFunction),
-  allow.resource(revokeSignerFunction),
-]);
+});
 
 export type Schema = ClientSchema<typeof schema>;
 
