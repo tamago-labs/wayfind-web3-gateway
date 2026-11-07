@@ -2,6 +2,7 @@ import type {
   APIGatewayProxyEventV2,
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
+import { handleMcp } from "./mcp/server";
 
 const json = (statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 => ({
   statusCode,
@@ -17,6 +18,20 @@ export const handler = async (
 ): Promise<APIGatewayProxyStructuredResultV2> => {
   if (event.requestContext.http.method === "OPTIONS") {
     return { statusCode: 200, body: "" };
+  }
+  // MCP routes live under /mcp/{serverId}[/message] (Streamable HTTP).
+  const rawPath = event.rawPath ?? event.requestContext.http.path ?? "";
+  if (rawPath === "/mcp" || rawPath.startsWith("/mcp/")) {
+    const res = await handleMcp({
+      method: event.requestContext.http.method,
+      path: rawPath,
+      body: event.body,
+    });
+    return {
+      statusCode: res.statusCode,
+      headers: { "Content-Type": "application/json" },
+      body: typeof res.body === "string" ? res.body : JSON.stringify(res.body),
+    };
   }
   let action = "health";
   try {

@@ -4,7 +4,5 @@ export { default as Features } from './Features';
 export { default as HowSection } from './HowSection';
 export { default as UseCases } from './UseCases';
 export { default as Connectors } from './Connectors';
-export { default as Pricing } from './Pricing';
-export { default as Faq } from './Faq';
 export { default as FinalCta } from './FinalCta';
 export { default as Footer } from './Footer';
