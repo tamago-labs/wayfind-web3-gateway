@@ -21,3 +21,13 @@ const byNetwork: Record<Network, Map<string, TokenMeta>> = {
 export function resolveToken(mint: string, network: Network): TokenMeta | null {
   return byNetwork[network].get(mint) ?? null;
 }
+
+/** Case-insensitive symbol lookup for send_tokens. First match wins;
+ * symbols are unique per network in the prepared registry. */
+export function findBySymbol(symbol: string, network: Network): TokenMeta | null {
+  const want = symbol.trim().toUpperCase();
+  for (const t of byNetwork[network].values()) {
+    if (t.symbol.toUpperCase() === want) return t;
+  }
+  return null;
+}

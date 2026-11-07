@@ -73,16 +73,3 @@ export const getBalancesTool: ToolDef = {
   },
   run: runGetBalances,
 };
-
-// Deprecated alias — kept so URLs issued before the rename keep working.
-export const getBalanceTool: ToolDef = {
-  name: "get_balance",
-  category: "wallet",
-  description: "Deprecated alias of get_balances.",
-  inputSchema: {
-    type: "object",
-    properties: {},
-    additionalProperties: false,
-  },
-  run: runGetBalances,
-};

@@ -1,14 +1,11 @@
 import type { Category, ToolContext, ToolDef } from "./types";
 import { addTool, divideTool, multiplyTool, pingTool, subtractTool } from "./tools/system/math";
 import { pingTool as ping } from "./tools/system/ping";
-import {
-  getBalanceTool,
-  getBalancesTool,
-} from "./tools/wallet/get_balances";
+import { getBalancesTool } from "./tools/wallet/get_balances";
 import { getHistoryTool } from "./tools/wallet/get_history";
 import { getTransactionTool } from "./tools/wallet/get_transaction";
 import { getWalletAddressTool } from "./tools/wallet/get_wallet_address";
-import { sendSolTool } from "./tools/wallet/send_sol";
+import { sendTokensTool } from "./tools/wallet/send_tokens";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -19,18 +16,16 @@ const allTools: ToolDef[] = [
   multiplyTool,
   divideTool,
   getBalancesTool,
-  getBalanceTool, // deprecated alias, same handler
   getHistoryTool,
   getTransactionTool,
   getWalletAddressTool,
-  sendSolTool,
+  sendTokensTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "system", label: "System" },
   { id: "wallet", label: "Wallet operations" },
   { id: "stocks", label: "Tokenized stocks" },
-  { id: "trading", label: "OKX DEX trading" },
   { id: "payments", label: "Circle payments" },
 ];
 

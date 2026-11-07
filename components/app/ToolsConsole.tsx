@@ -37,11 +37,10 @@ const CATALOG: {
       { name: 'get_history', description: 'Read the latest transactions, newest first.' },
       { name: 'get_transaction', description: 'Look up one transaction by signature.' },
       { name: 'get_wallet_address', description: 'Show the attached wallet address and network.' },
-      { name: 'send_sol', description: 'Send SOL. Limits enforced by the Privy policy.' },
+      { name: 'send_tokens', description: 'Send SOL or SPL tokens by symbol. Policy-enforced.' },
     ],
   },
   { id: 'stocks', label: 'Tokenized stocks', tools: [], comingSoon: true },
-  { id: 'trading', label: 'OKX DEX trading', tools: [], comingSoon: true },
   { id: 'payments', label: 'Circle payments', tools: [], comingSoon: true },
 ];
 
