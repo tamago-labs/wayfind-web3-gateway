@@ -1,4 +1,5 @@
 import type { ToolDef } from "../../types";
+import type { UnifiedBalanceChainIdentifier } from "@circle-fin/unified-balance-kit";
 import { circleAdapter, circleChain, unifiedBalanceContext } from "../../lib/circle";
 
 export const usdcSpendTool: ToolDef = {
@@ -36,7 +37,7 @@ export const usdcSpendTool: ToolDef = {
       const adapter = await circleAdapter(ctx.walletAddress, ctx.walletId, ctx.network);
       const context = await unifiedBalanceContext();
       const { getSupportedChains, spend } = await import("@circle-fin/unified-balance-kit");
-      const to: { adapter: unknown; chain: string; recipientAddress?: string } = {
+      const to: { adapter: typeof adapter; chain: UnifiedBalanceChainIdentifier; recipientAddress?: string } = {
         adapter,
         chain: circleChain(ctx.network),
       };
@@ -55,7 +56,7 @@ export const usdcSpendTool: ToolDef = {
             isError: true,
           };
         }
-        to.chain = args.targetChain;
+        to.chain = args.targetChain as UnifiedBalanceChainIdentifier;
       }
       if (typeof args.recipient === "string" && args.recipient) {
         to.recipientAddress = args.recipient;

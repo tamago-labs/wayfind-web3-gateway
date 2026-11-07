@@ -1,12 +1,13 @@
 // Circle kits bundle web3.js v1 (they call getRecentBlockhash, removed in
 // v3) — the adapter connection and provider keys must be v1 instances.
 import { Connection, PublicKey } from "@solana/web3js-v1";
+import type { ChainDefinition } from "@circle-fin/unified-balance-kit";
 import { privySignedRpc } from "./privy";
 
 export type CircleNetwork = "mainnet" | "testnet";
 
-/** Circle chain identifiers (UnifiedBalanceChain / BridgeChain values). */
-export function circleChain(network: CircleNetwork): string {
+/** Circle chain identifiers (literal union accepted by both BridgeChainIdentifier and UnifiedBalanceChainIdentifier). */
+export function circleChain(network: CircleNetwork): "Solana" | "Solana_Devnet" {
   return network === "mainnet" ? "Solana" : "Solana_Devnet";
 }
 
@@ -89,7 +90,7 @@ export async function circleAdapter(walletAddress: string, walletId: string, net
     { connection: connection as never, signer: signer as never },
     {
       addressContext: "user-controlled",
-      supportedChains: [(network === "mainnet" ? Solana : SolanaDevnet) as never],
+      supportedChains: [(network === "mainnet" ? Solana : SolanaDevnet) as ChainDefinition],
     },
   );
 }
