@@ -1,10 +1,30 @@
 import type { Category, ToolContext, ToolDef } from "./types";
-import { systemTools } from "./categories/system";
-import { walletTools } from "./categories/wallet";
+import { addTool, divideTool, multiplyTool, pingTool, subtractTool } from "./tools/system/math";
+import { pingTool as ping } from "./tools/system/ping";
+import {
+  getBalanceTool,
+  getBalancesTool,
+} from "./tools/wallet/get_balances";
+import { getHistoryTool } from "./tools/wallet/get_history";
+import { getTransactionTool } from "./tools/wallet/get_transaction";
+import { getWalletAddressTool } from "./tools/wallet/get_wallet_address";
+import { sendSolTool } from "./tools/wallet/send_sol";
 
 // Registry: the single place that decides what tools/list returns.
-// New categories land here as one import + one spread — nothing else changes.
-const allTools: ToolDef[] = [...systemTools, ...walletTools];
+// New tools land here as one import + one spread — nothing else changes.
+const allTools: ToolDef[] = [
+  ping,
+  addTool,
+  subtractTool,
+  multiplyTool,
+  divideTool,
+  getBalancesTool,
+  getBalanceTool, // deprecated alias, same handler
+  getHistoryTool,
+  getTransactionTool,
+  getWalletAddressTool,
+  sendSolTool,
+];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "system", label: "System" },

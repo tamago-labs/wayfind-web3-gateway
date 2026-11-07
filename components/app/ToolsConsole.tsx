@@ -33,8 +33,10 @@ const CATALOG: {
     id: 'wallet',
     label: 'Wallet operations',
     tools: [
-      { name: 'get_balance', description: 'Read the SOL balance of the attached wallet.' },
+      { name: 'get_balances', description: 'Read SOL plus every token balance, including stocks.' },
       { name: 'get_history', description: 'Read the latest transactions, newest first.' },
+      { name: 'get_transaction', description: 'Look up one transaction by signature.' },
+      { name: 'get_wallet_address', description: 'Show the attached wallet address and network.' },
       { name: 'send_sol', description: 'Send SOL. Limits enforced by the Privy policy.' },
     ],
   },

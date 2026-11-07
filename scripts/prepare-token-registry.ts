@@ -111,6 +111,12 @@ const main = () => {
   const devList = [...devnet.values()];
   writeFileSync(join(outDir, "mainnet.json"), JSON.stringify(mainList, null, 2) + "\n");
   writeFileSync(join(outDir, "devnet.json"), JSON.stringify(devList, null, 2) + "\n");
+  // The Lambda bundle cannot resolve outside its folder, so sync copies into
+  // the function. Re-run this script (never hand-edit the copies) to refresh.
+  const fnDir = join(ROOT, "amplify", "functions", "wayfind-api", "mcp", "data");
+  mkdirSync(fnDir, { recursive: true });
+  writeFileSync(join(fnDir, "mainnet.json"), JSON.stringify(mainList) + "\n");
+  writeFileSync(join(fnDir, "devnet.json"), JSON.stringify(devList) + "\n");
 
   const kinds = (l: Entry[]) => l.reduce<Record<string, number>>((m, e) => ({ ...m, [e.kind]: (m[e.kind] ?? 0) + 1 }), {});
   const noLogo = mainList.filter((e) => !e.logo).length;
