@@ -69,7 +69,7 @@ export default function Hero() {
           <span>Supports</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png"
+            src="/solana.png"
             alt="Solana"
             className="h-5 w-5 rounded-full"
             loading="lazy"

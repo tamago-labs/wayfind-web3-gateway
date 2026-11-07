@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Wallet } from 'lucide-react';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
 import Mascot from '@/components/Mascot';
 import AppSidebar from '@/components/app/AppSidebar';
 
@@ -29,9 +30,18 @@ const TITLES: Record<string, { title: string; hint: string }> = {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { ready, authenticated, login, logout, user } = usePrivy();
+  const { wallets } = useWallets();
+  const { wallets: solanaHookWallets } = useSolanaWallets();
   const [sideOpen, setSideOpen] = useState(false);
   const pathname = usePathname();
   const { title, hint } = TITLES[pathname] ?? TITLES['/app/tools'];
+
+  const solanaWallets = useMemo(() => {
+    const fromHook = solanaHookWallets.filter((w) => w.address);
+    if (fromHook.length > 0) return fromHook.map((w) => ({ address: w.address as string }));
+    // Fallback: app is solana-only, so any wallet here is treated as Solana.
+    return wallets.filter((w) => w.address).map((w) => ({ address: w.address as string }));
+  }, [wallets, solanaHookWallets]);
 
   if (!ready) {
     return (
@@ -79,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         open={sideOpen}
         onClose={() => setSideOpen(false)}
         email={user?.email?.address}
-        cluster="devnet"
+        wallets={solanaWallets}
         onLogout={logout}
       />
 
