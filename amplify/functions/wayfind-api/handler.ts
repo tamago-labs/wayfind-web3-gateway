@@ -3,6 +3,7 @@ import type {
   APIGatewayProxyStructuredResultV2,
 } from "aws-lambda";
 import { handleMcp } from "./mcp/server";
+import { getSwapInstruction, getSwapQuote } from "./mcp/lib/okx";
 
 const json = (statusCode: number, body: unknown): APIGatewayProxyStructuredResultV2 => ({
   statusCode,
@@ -33,6 +34,44 @@ export const handler = async (
       body: typeof res.body === "string" ? res.body : JSON.stringify(res.body),
     };
   }
+  // OKX DEX routes (parity with the retired wayfin backend).
+  if (event.requestContext.http.method === "GET" && rawPath.endsWith("/swap-quote")) {
+    const qs = event.queryStringParameters ?? {};
+    try {
+      const data = await getSwapQuote({
+        fromTokenAddress: qs.fromTokenAddress,
+        toTokenAddress: qs.toTokenAddress,
+        fromSymbol: qs.fromSymbol,
+        toSymbol: qs.toSymbol,
+        amount: qs.amount ?? "",
+      });
+      return json(200, { data });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Swap quote failed";
+      const status = msg.startsWith("Missing required parameters") ? 400 : 502;
+      return json(status, { error: msg });
+    }
+  }
+  if (event.requestContext.http.method === "GET" && rawPath.endsWith("/swap-instruction")) {
+    const qs = event.queryStringParameters ?? {};
+    try {
+      const data = await getSwapInstruction({
+        fromTokenAddress: qs.fromTokenAddress,
+        toTokenAddress: qs.toTokenAddress,
+        fromSymbol: qs.fromSymbol,
+        toSymbol: qs.toSymbol,
+        amount: qs.amount ?? "",
+        userWalletAddress: qs.userWalletAddress ?? "",
+        slippagePercent: qs.slippagePercent,
+      });
+      return json(200, { data });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Swap instruction failed";
+      const status = msg.startsWith("Missing required parameters") ? 400 : 502;
+      return json(status, { error: msg });
+    }
+  }
+
   let action = "health";
   try {
     if (event.body) action = (JSON.parse(event.body) as { action?: string }).action ?? "health";

@@ -13,5 +13,9 @@ export const wayfindApiFunction = defineFunction({
     PRIVY_APP_ID: process.env.PRIVY_APP_ID ?? "",
     PRIVY_APP_SECRET: secret("PRIVY_APP_SECRET"),
     PRIVY_AUTH_PRIVATE_KEY: secret("PRIVY_AUTH_PRIVATE_KEY"),
+    // OKX DEX aggregator (swap quotes + instructions, Solana mainnet).
+    OKX_API_KEY: secret("OKX_API_KEY"),
+    OKX_SECRET_KEY: secret("OKX_SECRET_KEY"),
+    OKX_PASSPHRASE: secret("OKX_PASSPHRASE"),
   },
 });
