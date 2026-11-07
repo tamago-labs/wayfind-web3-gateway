@@ -39,23 +39,6 @@ export default function Header() {
               {link.label}
             </Link>
           ))} 
-          {navLinks.map((link) =>
-            link.external ? (
-              <a
-                key={link.href}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-60 transition-opacity"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link key={link.href} href={link.href} className="hover:opacity-60 transition-opacity">
-                {link.label}
-              </Link>
-            ),
-          )} 
           <Link href="/app" className="hover:opacity-60 transition-opacity">
             Dashboard
           </Link>
