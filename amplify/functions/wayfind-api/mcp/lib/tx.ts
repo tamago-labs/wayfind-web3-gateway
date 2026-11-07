@@ -81,10 +81,13 @@ export async function decodeTransaction(
   address: string,
   signature: string,
 ): Promise<DecodedTx> {
+  // v3's GetTransactionConfig omits `encoding` (RPC defaults to json, which is
+  // the parsed shape this decoder was proven against live). Cast keeps the
+  // exact runtime request while satisfying tsc.
   const tx = await connection.getTransaction(signature, {
     encoding: "jsonParsed",
     maxSupportedTransactionVersion: 0,
-  });
+  } as unknown as { maxSupportedTransactionVersion?: number });
   if (!tx) throw new Error("Transaction not found (may be pruned from history)");
   const meta = tx.meta as unknown as {
     err?: unknown;

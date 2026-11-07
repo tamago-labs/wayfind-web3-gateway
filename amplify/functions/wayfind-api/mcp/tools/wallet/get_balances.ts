@@ -31,21 +31,23 @@ export const runGetBalances = async (
   try {
     const lamports = await getBalanceLamports(ctx.network, ctx.walletAddress);
     lines.push(`SOL: ${lamports / 1_000_000_000} SOL`);
+    type TokenAccountRow = {
+      pubkey: PublicKey;
+      account: {
+        data: { parsed?: { info?: { mint?: string; tokenAmount?: { uiAmount?: number } } } };
+      };
+    };
     const tokenLists = await Promise.all(
       TOKEN_PROGRAMS.map((programId) =>
         connection
           .getParsedTokenAccountsByOwner(owner, { programId: new PublicKey(programId) })
-          .then((r) => r.value)
-          .catch(() => [] as unknown[]),
+          .then((r) => r.value as unknown as TokenAccountRow[])
+          .catch(() => [] as TokenAccountRow[]),
       ),
     );
     for (const list of tokenLists) {
       for (const acc of list) {
-        const info = (
-          acc.account.data as unknown as {
-            parsed?: { info?: { mint?: string; tokenAmount?: { uiAmount?: number } } };
-          }
-        ).parsed?.info;
+        const info = acc.account.data.parsed?.info;
         if (!info?.mint || typeof info.tokenAmount?.uiAmount !== "number") continue;
         if (info.tokenAmount.uiAmount <= 0) continue;
         const meta = resolveToken(info.mint, ctx.network);

@@ -131,7 +131,7 @@ export default function BalancesPage() {
       }),
     );
     const next: Row[] = [];
-    for (const [mint, amount] of totals) {
+    totals.forEach((amount, mint) => {
       const reg = registry.get(mint);
       next.push({
         mint,
@@ -141,7 +141,7 @@ export default function BalancesPage() {
         kind: reg?.kind ?? 'unknown',
         amount,
       });
-    }
+    });
     // SOL always first, then by amount desc.
     next.sort((a, b) =>
       a.mint === '11111111111111111111111111111111'

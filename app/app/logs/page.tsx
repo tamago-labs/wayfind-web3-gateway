@@ -38,16 +38,17 @@ const B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
 
 function base58ToBytes(s: string): Uint8Array | null {
   try {
-    let num = 0n;
+    // No BigInt literals: the frontend targets es5 (literals need ES2020+).
+    let num = BigInt(0);
     for (const ch of s) {
       const i = B58_ALPHABET.indexOf(ch);
       if (i < 0) return null;
-      num = num * 58n + BigInt(i);
+      num = num * BigInt(58) + BigInt(i);
     }
     const bytes: number[] = [];
-    while (num > 0n) {
-      bytes.unshift(Number(num & 0xffn));
-      num >>= 8n;
+    while (num > BigInt(0)) {
+      bytes.unshift(Number(num & BigInt(255)));
+      num >>= BigInt(8);
     }
     let zeros = 0;
     for (const ch of s) {
@@ -122,10 +123,12 @@ async function fetchScope(
         kind: null,
       };
       try {
+        // v3's GetTransactionConfig omits `encoding` (RPC defaults to json).
+        // Cast keeps the exact runtime request while satisfying tsc.
         const tx = await connection.getTransaction(s.signature, {
           encoding: 'jsonParsed',
           maxSupportedTransactionVersion: 0,
-        });
+        } as unknown as { maxSupportedTransactionVersion?: number });
         const message = tx?.transaction.message as unknown as {
           accountKeys?: unknown;
           instructions?: CompiledIx[];
