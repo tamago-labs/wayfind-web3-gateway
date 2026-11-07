@@ -51,12 +51,20 @@ export const swapTokensTool: ToolDef = {
       // Decimals come from the mint account (same source send_tokens uses).
       const fromMint = resolveMainnetMint(args.from);
       if (!fromMint) return { text: `Unknown token '${args.from}' on mainnet.`, isError: true };
-      const mintInfo = await connection.getParsedAccountInfo(new PublicKey(fromMint)).catch(() => null);
-      const decimals = (
-        mintInfo?.value?.data as unknown as { parsed?: { info?: { decimals?: number } } }
-      )?.parsed?.info?.decimals;
+      const toMint = resolveMainnetMint(args.to);
+      if (!toMint) return { text: `Unknown token '${args.to}' on mainnet.`, isError: true };
+      const readDecimals = async (mint: string) => {
+        const info = await connection.getParsedAccountInfo(new PublicKey(mint)).catch(() => null);
+        return (info?.value?.data as unknown as { parsed?: { info?: { decimals?: number } } })?.parsed?.info
+          ?.decimals;
+      };
+      const decimals = await readDecimals(fromMint);
       if (typeof decimals !== "number") {
         return { text: `Could not read mint decimals for ${args.from}.`, isError: true };
+      }
+      const toDecimals = await readDecimals(toMint);
+      if (typeof toDecimals !== "number") {
+        return { text: `Could not read mint decimals for ${args.to}.`, isError: true };
       }
       const baseUnits = Math.round(args.amount * 10 ** decimals).toString();
       const instruction = await getSwapInstruction({
@@ -73,8 +81,10 @@ export const swapTokensTool: ToolDef = {
       const txB64 = base58ToBase64(instruction.base58Transaction);
       if (!txB64) return { text: "Could not decode the OKX transaction.", isError: true };
       const hash = await signAndSend(ctx.walletId, txB64, "mainnet");
+      // minReceiveAmount arrives in to-token base units — show display units.
+      const minReceive = Number(instruction.minReceiveAmount) / 10 ** toDecimals;
       return {
-        text: `Swapped ${args.amount} ${args.from} → ${args.to} (mainnet, min receive ${instruction.minReceiveAmount}): https://explorer.solana.com/tx/${hash}`,
+        text: `Swapped ${args.amount} ${args.from} → ${args.to} (mainnet, min receive ${Number.isFinite(minReceive) ? minReceive : instruction.minReceiveAmount}): https://explorer.solana.com/tx/${hash}`,
       };
     } catch (e) {
       return { text: `Swap failed: ${e instanceof Error ? e.message : e}`, isError: true };
