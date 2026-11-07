@@ -33,14 +33,12 @@ export default function Header() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <Logo />
 
-        <nav className="hidden items-center gap-8 text-[15px] font-medium text-navy md:flex">
-<<<<<<< HEAD
+        <nav className="hidden items-center gap-8 text-[15px] font-medium text-navy md:flex"> 
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="hover:opacity-60 transition-opacity">
               {link.label}
             </Link>
-          ))}
-=======
+          ))} 
           {navLinks.map((link) =>
             link.external ? (
               <a
@@ -57,8 +55,7 @@ export default function Header() {
                 {link.label}
               </Link>
             ),
-          )}
->>>>>>> b14c2af162d9cdaaef04110f5fd6053429291b15
+          )} 
           <Link href="/app" className="hover:opacity-60 transition-opacity">
             Dashboard
           </Link>
