@@ -15,8 +15,8 @@ const TITLES: Record<string, { title: string; hint: string }> = {
     hint: 'The Web3 MCP your AI Bots call. Balances and signing arrive with the gateway.',
   },
   '/app/connect': {
-    title: 'Connect',
-    hint: 'Solana wallets owned by this account. Embedded wallets are created on login.',
+    title: 'Connect to Your Wayfind MCP Server',
+    hint: 'Configure your Wayfind MCP server across all available MCP clients.',
   },
   '/app/authorization': {
     title: 'Authorization',

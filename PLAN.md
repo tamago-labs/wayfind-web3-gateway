@@ -338,3 +338,28 @@ Built on top of the architecture above. Deviations from the original plan are ma
 - `fetchScope` costs ~2 RPC calls per row (`getSignaturesForAddress` + `getTransaction`); fine at 10 rows, revisit with pagination/caching past that.
 - Logs table: Signature · Direction (transfer-derived, not fee-derived) · Amount (exact decoded lamports for SOL, honest labels otherwise) · Status · Time; row-click → explorer; filters for status/direction/network/time (no 15m/30m/3d options); skeleton holds ≥600ms so loading is perceptible.
 - Tool toggles save through a per-URL promise chain (rapid toggles used to drop writes); cards show `URL ·<id6> · <updated>` so regenerated rows are distinguishable.
+
+### 8.6 OKX DEX (quote live, swap built but never executed)
+
+- REST parity routes: `GET /api/v1/swap-quote`, `GET /api/v1/swap-instruction` (`mcp/lib/okx.ts`, HMAC via `OKX_API_KEY/SECRET/PASSPHRASE` secrets). **Live responses are flat** (`{ base58Transaction, routerResult, minReceiveAmount }`), not nested under `tx` — parse both shapes.
+- Tools: `okx_get_quote` (read-only) and `okx_swap_tokens` (mainnet-gated, policy-enforced). Swap path: mint-decimals lookup → base units → OKX instruction → base58→base64 → proven `signAndSend`.
+- **DECISION:** both tools take **display-unit** amounts (`get_quote` was base-unit string, now number like `swap_tokens`); outputs format back to display units with the quote/mint decimals. Router names come from `dexRouterList[].dexProtocol` (flat `r.dexName` is `undefined`).
+- `okx_swap_tokens` has never executed — needs a mainnet-scoped URL, funded mainnet wallet, and explicit user go (real money).
+
+### 8.7 USDC finance (Circle App Kits, Solana-anchored)
+
+- Category `usdc` / "USDC finance": `usdc_unified_balance` (read-only totals + breakdown), `usdc_chains` (valid destinations for the scope network), `usdc_deposit`, `usdc_spend` (defaults back to the Solana wallet; `targetChain` validated against the live destination list).
+- **DECISION:** no Circle-swap tool (mainnet-only, OKX already covers the lane) and no raw CCTP bridge tool (wallet is Solana-only — a raw `depositForBurn` would strand funds unless the recipient claims; Gateway `spend` covers cross-chain in one signature). Earn/Borrow are Arc-only, out of scope.
+- Chain sets (probed against SDK 2026-11-07): bridge 52 chains incl. `Solana` + `Solana_Devnet`; unifiedBalance 26 (13 testnet ↔ 13 mainnet); swap mainnet-only, no Devnet leg. Identifiers: `Solana` / `Solana_Devnet`.
+- Signing seam (all proven live): Circle kits bundle web3.js **v1** (they call `getRecentBlockhash`, removed in v3) → `@solana/web3js-v1` alias for the adapter connection + provider keys. `createSolanaAdapterFromProvider` **silently drops custom connections** (always builds defaults) → construct `new SolanaAdapter({ connection, signer }, { addressContext: 'user-controlled', supportedChains })` directly. `mcp/lib/circle.ts` builds a Privy-backed wallet-standard provider: `signTransaction` (`wallets/{id}/rpc { transaction, encoding: 'base64' }` → `data.signed_transaction`, nothing broadcast) + `signMessage` (same shape → `data.signature`, needed for the Gateway burn-intent); deserialize with the input tx's own class.
+- TS: chain ids typed as `"Solana" | "Solana_Devnet"` literal union (satisfies both `BridgeChainIdentifier` and `UnifiedBalanceChainIdentifier`); never `as never` the `supportedChains` array — it poisons capabilities to `never[]` and breaks every kit call signature.
+- Ops findings: Solana gas buffer is **90,000 base units (0.09 USDC)**, reserved from the unified balance — spends need `amount + 0.09` confirmed. Gateway indexing lags **~1–2 min** after a deposit before it counts as spendable.
+- Backend typecheck: `npx tsc --noEmit -p amplify/tsconfig.json` is clean except the pre-existing `$amplify/env/*` stubs (generated at deploy).
+
+### 8.8 Live verification (testnet URL …d47bc213f38, 11 Nov 2026)
+
+- `tools/list` returns 11 tools (`get_sol_balance` was removed; system category deleted — pure allowlist, new URLs expose zero tools until toggled).
+- Tested live 10/10 callable: `get_wallet_address`, `get_balances`, `get_history`, `get_transaction`, `usdc_unified_balance`, `usdc_chains`, `okx_get_quote`, `send_tokens` (0.001 SOL self-send), `usdc_deposit` (0.1 + 1 + 2 USDC), `usdc_spend` (1 USDC back). `okx_swap_tokens` correctly refuses on testnet scope.
+- Infra notes: **transient `403 {"Message":null}` on POSTs during deploy propagation** — AWS-level, never from `handler.ts` (it emits no 403s); wait and retry, don't chase app code. A brand-new deploy can also replace the Function URL — if every path 403s persistently, re-read `custom.wayfindApi.functionUrl` from Amplify outputs.
+- Env gap: Lambda has `SOLANA_DEVNET_RPC` but `circle.ts` reads `NEXT_PUBLIC_SOLANA_DEVNET_RPC` first → falls back to `api.devnet.solana.com` in prod. Align the names or set the var in console.
+- Pending: deploy the quote display-unit fix; first `okx_swap_tokens` mainnet execution; cross-chain `usdc_spend` (needs a destination EVM address from the user).

@@ -145,8 +145,6 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
                 </button>
               ))}
             </div>
-
-
             <div className="mt-4 space-y-3">
               {wallets.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-navy/20 p-5 text-sm text-heroslate">
@@ -195,7 +193,8 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               )}
               {wallets.length > 0 && (
                 <p className="text-xs text-heroslate">
-                  Your bot wallet, secured by Privy. Fund it to start transacting.
+                  Switching scope? Regenerate your MCP URL in Connect — scope is stamped at
+                  issuance and old URLs keep the previous scope.
                 </p>
               )}
             </div>
