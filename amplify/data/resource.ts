@@ -27,7 +27,7 @@ const schema = a.schema({
       enabledTools: a.string().array(),
     })
     .identifier(["serverIdHash"])
-    .authorization((allow) => [allow.publicApiKey(), allow.resource(wayfindApiFunction)]),
+    .authorization((allow) => [allow.publicApiKey()]),
 
   ProposeSignerResult: a.customType({
     walletAddress: a.string(),
@@ -71,7 +71,9 @@ const schema = a.schema({
     .returns(a.ref("RevokeSignerResult"))
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(revokeSignerFunction)),
-});
+}).authorization((allow) => [
+  allow.resource(wayfindApiFunction),
+]);
 
 export type Schema = ClientSchema<typeof schema>;
 
