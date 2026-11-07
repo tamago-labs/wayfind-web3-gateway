@@ -17,7 +17,7 @@
     "mint": "HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr",
     "symbol": "EURC",
     "name": "Euro Coin (devnet)",
-    "logo": null,
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/20641.png",
     "kind": "stable"
   }
 ]

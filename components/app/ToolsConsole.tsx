@@ -15,20 +15,7 @@ const CATALOG: {
   label: string;
   tools: { name: string; description: string }[];
   comingSoon?: boolean;
-  alwaysOn?: boolean;
 }[] = [
-  {
-    id: 'system',
-    label: 'System',
-    alwaysOn: true,
-    tools: [
-      { name: 'ping', description: 'Connectivity check.' },
-      { name: 'add', description: 'Add two numbers.' },
-      { name: 'subtract', description: 'Subtract b from a.' },
-      { name: 'multiply', description: 'Multiply two numbers.' },
-      { name: 'divide', description: 'Divide a by b.' },
-    ],
-  },
   {
     id: 'wallet',
     label: 'Wallet operations',
@@ -153,7 +140,7 @@ export default function ToolsConsole() {
           <Link href="/app/connect" className="font-semibold text-cta hover:underline">
             Connect
           </Link>{' '}
-          first — tool toggles appear here once a URL exists. System tools are always on.
+          first — new URLs start with no tools enabled. Switch them on here, one by one.
         </p>
       </div>
     );
@@ -180,24 +167,23 @@ export default function ToolsConsole() {
               <div key={cat.id}>
                 <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
                   {cat.label}
-                  {cat.alwaysOn && <span className="ml-2 text-cta">· always on</span>}
                   {cat.comingSoon && <span className="ml-2">· coming soon</span>}
                 </p>
                 {cat.tools.length > 0 && (
                   <ul className="mt-2 space-y-2">
                     {cat.tools.map((t) => {
-                      const on = cat.alwaysOn || c.enabledTools.includes(t.name);
+                      const on = c.enabledTools.includes(t.name);
                       const key = `${c.serverIdHash}:${t.name}`;
                       return (
                         <li key={t.name} className="flex items-center gap-3 text-sm">
                           <button
                             role="switch"
                             aria-checked={on}
-                            disabled={cat.alwaysOn || busy === key}
+                            disabled={busy === key}
                             onClick={() => toggle(c.serverIdHash, t.name, !on)}
                             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
                               on ? 'bg-cta' : 'bg-navy/15'
-                            } ${cat.alwaysOn ? 'cursor-default opacity-70' : 'cursor-pointer'}`}
+                            } cursor-pointer`}
                           >
                             <span
                               className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${

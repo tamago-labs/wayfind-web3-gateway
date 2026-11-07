@@ -2,7 +2,7 @@
 // stateless): POST JSON-RPC to /mcp/{serverId}/message. The SDK package is only
 // used for protocol constants, never for its stateful transports.
 
-export type Category = "system" | "wallet" | "stocks" | "payments";
+export type Category = "wallet" | "stocks" | "payments";
 
 export interface ToolContext {
   serverId: string;

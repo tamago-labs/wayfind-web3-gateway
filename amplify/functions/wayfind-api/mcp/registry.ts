@@ -1,6 +1,4 @@
 import type { Category, ToolContext, ToolDef } from "./types";
-import { addTool, divideTool, multiplyTool, pingTool, subtractTool } from "./tools/system/math";
-import { pingTool as ping } from "./tools/system/ping";
 import { getBalancesTool } from "./tools/wallet/get_balances";
 import { getHistoryTool } from "./tools/wallet/get_history";
 import { getTransactionTool } from "./tools/wallet/get_transaction";
@@ -9,12 +7,9 @@ import { sendTokensTool } from "./tools/wallet/send_tokens";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
+// Pure allowlist: only tools named in enabledTools are listed. New URLs
+// start with none enabled; owners switch them on one by one in Tools.
 const allTools: ToolDef[] = [
-  ping,
-  addTool,
-  subtractTool,
-  multiplyTool,
-  divideTool,
   getBalancesTool,
   getHistoryTool,
   getTransactionTool,
@@ -23,7 +18,6 @@ const allTools: ToolDef[] = [
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
-  { id: "system", label: "System" },
   { id: "wallet", label: "Wallet operations" },
   { id: "stocks", label: "Tokenized stocks" },
   { id: "payments", label: "Circle payments" },
@@ -32,8 +26,7 @@ export const CATEGORIES: { id: Category; label: string }[] = [
 export function listTools(ctx: ToolContext): ToolDef[] {
   if (ctx.enabledTools === null) return allTools;
   const enabled = new Set(ctx.enabledTools);
-  // System tools are always on — they are the connectivity smoke test.
-  return allTools.filter((t) => t.category === "system" || enabled.has(t.name));
+  return allTools.filter((t) => enabled.has(t.name));
 }
 
 export function findTool(name: string, ctx: ToolContext): ToolDef | undefined {
