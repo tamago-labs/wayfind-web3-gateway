@@ -43,12 +43,19 @@ function storageKey(walletId: string): string {
   return `wayfind-mcp-url:${walletId}`;
 }
 
+/** Older issues may have stored a relative /mcp/... URL (empty base) — prefix origin. */
+function toAbsolute(url: string): string {
+  if (!url.startsWith('/')) return url;
+  const base = baseUrl();
+  return base ? `${base}${url}` : url;
+}
+
 function serverIdFromUrl(url: string): string | null {
   const m = /\/mcp\/([^/]+)\/message\/?$/.exec(url);
   return m ? m[1] : null;
 }
 
-function maskUrl(url: string): string {
+export function maskUrl(url: string): string {
   // Keep the stored URL's own origin (old long Lambda URLs stay recognizable).
   const m = /^(https?:\/\/[^/]+)\/mcp\//.exec(url);
   const prefix = m ? m[1] : baseUrl() || url.slice(0, url.indexOf('/mcp/'));
@@ -132,19 +139,28 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
     let cancelled = false;
     (async () => {
       try {
-        const raw = localStorage.getItem(storageKey(walletId));
-        const id = raw ? serverIdFromUrl(raw) : null;
-        if (raw && id) {
+          const raw = localStorage.getItem(storageKey(walletId));
+          const absolute = raw ? toAbsolute(raw) : null;
+          const id = absolute ? serverIdFromUrl(absolute) : null;
+          if (absolute && id) {
+            // Persist the upgrade so every copy carries the base URL.
+            if (absolute !== raw) {
+              try {
+                localStorage.setItem(storageKey(walletId), absolute);
+              } catch {
+                // Ignore storage errors on upgrade.
+              }
+            }
           const res = await dataClient.models.McpToolConfig.list({
             filter: { walletId: { eq: walletId } },
           });
           const row = res.data[0];
           if (!cancelled && row && (await sha256Hex(id)) === row.serverIdHash) {
-            setStoredUrl(raw);
+            setStoredUrl(absolute);
           } else if (!cancelled) {
             localStorage.removeItem(storageKey(walletId));
           }
-        }
+          }
       } catch {
         // Storage unavailable — fall back to no-URL states.
       } finally {
@@ -204,7 +220,7 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
           await dataClient.models.McpToolConfig.delete({ serverIdHash: previousHash });
         }
         const base = baseUrl();
-        const url = base ? `${base}/mcp/${serverId}/message` : `/mcp/${serverId}/message`;
+        const url = toAbsolute(base ? `${base}/mcp/${serverId}/message` : `/mcp/${serverId}/message`);
         try {
           localStorage.setItem(storageKey(wallet.id), url);
         } catch {
@@ -330,9 +346,6 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
             <p className="min-w-0 flex-1 truncate font-mono text-[13px] text-navy">
               {maskUrl(storedUrl)}
             </p>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-              Active
-            </span>
             <button
               onClick={() => copy(storedUrl, 'masked')}
               className="shrink-0 rounded-full bg-navy px-4 py-1.5 text-[13px] font-bold text-white hover:opacity-90"

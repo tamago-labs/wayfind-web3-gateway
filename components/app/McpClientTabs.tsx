@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { mcpJsonSnippet } from './McpAccessCard';
+import { maskUrl, mcpJsonSnippet } from './McpAccessCard';
 
 const PLACEHOLDER_URL = 'https://<your-wayfind-host>/mcp/****/message';
 
@@ -43,7 +43,9 @@ export default function McpClientTabs({ url }: { url: string | null }) {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const effectiveUrl = url ?? PLACEHOLDER_URL;
+  // Display stays masked (like Card 1); copying always writes the full URL.
+  const displayUrl = url ? maskUrl(url) : PLACEHOLDER_URL;
+  const displayJson = mcpJsonSnippet(displayUrl);
   const tabs = [
     { id: 'claude', label: 'Claude' },
     { id: 'vscode', label: 'VS Code' },
@@ -104,8 +106,8 @@ export default function McpClientTabs({ url }: { url: string | null }) {
               />
             </div>
             <div>
-              <p className="mb-2 text-sm font-bold text-navy">Integration URL (paste directly — no proxy needed)</p>
-              <CodeBlock code={effectiveUrl} onCopy={() => url && copy(url, 'claude-url')} copied={copied === 'claude-url'} />
+              <p className="mb-2 text-sm font-bold text-navy">Integration URL (paste directly)</p>
+              <CodeBlock code={displayUrl} onCopy={() => url && copy(url, 'claude-url')} copied={copied === 'claude-url'} />
             </div>
           </div>
         )}
@@ -127,7 +129,7 @@ export default function McpClientTabs({ url }: { url: string | null }) {
             </div>
             <div>
               <p className="mb-2 text-sm font-bold text-navy">mcp.json snippet</p>
-              <CodeBlock code={mcpJsonSnippet(effectiveUrl)} onCopy={() => url && copy(mcpJsonSnippet(url), 'vscode-json')} copied={copied === 'vscode-json'} />
+              <CodeBlock code={displayJson} onCopy={() => url && copy(mcpJsonSnippet(url), 'vscode-json')} copied={copied === 'vscode-json'} />
             </div>
           </div>
         )}
@@ -170,7 +172,7 @@ export default function McpClientTabs({ url }: { url: string | null }) {
               <p className="mb-2 text-xs text-heroslate">
                 For clients that accept a JSON config file (common in IDE-based agents):
               </p>
-              <CodeBlock code={mcpJsonSnippet(effectiveUrl)} onCopy={() => url && copy(mcpJsonSnippet(url), 'any-json')} copied={copied === 'any-json'} />
+              <CodeBlock code={displayJson} onCopy={() => url && copy(mcpJsonSnippet(url), 'any-json')} copied={copied === 'any-json'} />
             </div>
           </div>
         )}
