@@ -38,7 +38,7 @@ export default function LogsPage() {
             (s): Entry => ({
               signature: s.signature,
               address: w.address,
-              time: s.blockTime ?? null,
+              time: s.blockTime == null ? null : Number(s.blockTime),
               failed: !!s.err,
             }),
           );
