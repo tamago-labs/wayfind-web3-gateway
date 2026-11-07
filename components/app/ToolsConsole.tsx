@@ -1,0 +1,209 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { generateClient } from 'aws-amplify/data';
+import { usePrivy } from '@privy-io/react-auth';
+import type { Schema } from '@/amplify/data/resource';
+
+const dataClient = generateClient<Schema>();
+
+// Frontend mirror of the backend registry (mcp/registry.ts + categories/).
+// Names must match; the backend stays the source of truth for execution.
+const CATALOG: {
+  id: string;
+  label: string;
+  tools: { name: string; description: string }[];
+  comingSoon?: boolean;
+  alwaysOn?: boolean;
+}[] = [
+  {
+    id: 'system',
+    label: 'System',
+    alwaysOn: true,
+    tools: [
+      { name: 'ping', description: 'Connectivity check.' },
+      { name: 'add', description: 'Add two numbers.' },
+      { name: 'subtract', description: 'Subtract b from a.' },
+      { name: 'multiply', description: 'Multiply two numbers.' },
+      { name: 'divide', description: 'Divide a by b.' },
+    ],
+  },
+  {
+    id: 'wallet',
+    label: 'Wallet operations',
+    tools: [
+      { name: 'get_balance', description: 'Read the SOL balance of the attached wallet.' },
+      { name: 'get_history', description: 'Read the latest transactions, newest first.' },
+    ],
+  },
+  { id: 'stocks', label: 'Tokenized stocks', tools: [], comingSoon: true },
+  { id: 'trading', label: 'OKX DEX trading', tools: [], comingSoon: true },
+  { id: 'payments', label: 'Circle payments', tools: [], comingSoon: true },
+];
+
+interface Config {
+  serverIdHash: string;
+  walletId: string;
+  walletAddress?: string | null;
+  network?: string | null;
+  enabledTools: string[];
+}
+
+export default function ToolsConsole() {
+  const { user } = usePrivy();
+  const [configs, setConfigs] = useState<Config[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const embeddedIds = useMemo(() => {
+    const accounts = (user?.linkedAccounts ?? []) as Array<{
+      type: string;
+      id?: string;
+      walletClientType?: string;
+    }>;
+    return new Set(
+      accounts
+        .filter((a) => a.type === 'wallet' && a.walletClientType === 'privy' && a.id)
+        .map((a) => a.id as string),
+    );
+  }, [user]);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await dataClient.models.McpToolConfig.list({ limit: 100 });
+      setConfigs(
+        (res.data ?? [])
+          .filter((r) => embeddedIds.has(r.walletId))
+          .map((r) => ({
+            serverIdHash: r.serverIdHash,
+            walletId: r.walletId,
+            walletAddress: r.walletAddress,
+            network: r.network,
+            enabledTools: (r.enabledTools ?? []).filter(
+              (t): t is string => typeof t === 'string',
+            ),
+          })),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load tool settings.');
+    } finally {
+      setLoaded(true);
+    }
+  }, [embeddedIds]);
+
+  useEffect(() => {
+    if (embeddedIds.size > 0) void refresh();
+    else setLoaded(true);
+  }, [refresh, embeddedIds]);
+
+  const toggle = useCallback(
+    async (serverIdHash: string, tool: string, on: boolean) => {
+      const key = `${serverIdHash}:${tool}`;
+      setBusy(key);
+      setError(null);
+      try {
+        const current = configs.find((c) => c.serverIdHash === serverIdHash);
+        const next = on
+          ? Array.from(new Set([...(current?.enabledTools ?? []), tool]))
+          : (current?.enabledTools ?? []).filter((t) => t !== tool);
+        await dataClient.models.McpToolConfig.update({
+          serverIdHash,
+          enabledTools: next,
+        });
+        setConfigs((cs) =>
+          cs.map((c) => (c.serverIdHash === serverIdHash ? { ...c, enabledTools: next } : c)),
+        );
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not save tool settings.');
+      } finally {
+        setBusy(null);
+      }
+    },
+    [configs],
+  );
+
+  if (!loaded) return <p className="mt-6 text-sm text-heroslate">Loading tools…</p>;
+
+  if (configs.length === 0) {
+    return (
+      <div className="mt-6 rounded-3xl border border-dashed border-navy/20 p-6 text-sm text-heroslate">
+        <p className="font-bold text-navy">No MCP URL yet</p>
+        <p className="mt-2">
+          Generate one in{' '}
+          <Link href="/app/connect" className="font-semibold text-cta hover:underline">
+            Connect
+          </Link>{' '}
+          first — tool toggles appear here once a URL exists. System tools are always on.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 space-y-3">
+      {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+      {configs.map((c) => (
+        <div
+          key={c.serverIdHash}
+          className="rounded-3xl border border-navy/10 bg-white p-5 shadow-sm"
+        >
+          <div className="flex items-center gap-2 text-sm">
+            <p className="font-mono font-semibold" title={c.walletAddress ?? c.walletId}>
+              {(c.walletAddress ?? c.walletId).slice(0, 8)}…
+            </p>
+            <span className="rounded-full bg-navy/5 px-3 py-1 text-xs font-bold text-navy">
+              {c.network === 'mainnet' ? 'Mainnet' : 'Devnet'}
+            </span>
+          </div>
+          <div className="mt-4 space-y-4">
+            {CATALOG.map((cat) => (
+              <div key={cat.id}>
+                <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
+                  {cat.label}
+                  {cat.alwaysOn && <span className="ml-2 text-cta">· always on</span>}
+                  {cat.comingSoon && <span className="ml-2">· coming soon</span>}
+                </p>
+                {cat.tools.length > 0 && (
+                  <ul className="mt-2 space-y-2">
+                    {cat.tools.map((t) => {
+                      const on = cat.alwaysOn || c.enabledTools.includes(t.name);
+                      const key = `${c.serverIdHash}:${t.name}`;
+                      return (
+                        <li key={t.name} className="flex items-center gap-3 text-sm">
+                          <button
+                            role="switch"
+                            aria-checked={on}
+                            disabled={cat.alwaysOn || busy !== null}
+                            onClick={() => toggle(c.serverIdHash, t.name, !on)}
+                            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                              on ? 'bg-cta' : 'bg-navy/15'
+                            } ${cat.alwaysOn ? 'cursor-default opacity-70' : 'cursor-pointer'}`}
+                          >
+                            <span
+                              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                                on ? 'left-[22px]' : 'left-0.5'
+                              }`}
+                            />
+                          </button>
+                          <div className="min-w-0">
+                            <p className="font-mono font-semibold">{t.name}</p>
+                            <p className="truncate text-xs text-heroslate">{t.description}</p>
+                          </div>
+                          {busy === key && (
+                            <span className="ml-auto text-xs text-heroslate">Saving…</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

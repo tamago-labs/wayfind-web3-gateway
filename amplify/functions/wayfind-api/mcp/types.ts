@@ -7,6 +7,9 @@ export type Category = "system" | "wallet" | "stocks" | "trading" | "payments";
 export interface ToolContext {
   serverId: string;
   walletId: string;
+  // Null on pre-Phase-3 rows — wallet tools refuse with a re-issue hint.
+  walletAddress: string | null;
+  network: "mainnet" | "testnet";
   enabledTools: string[] | null; // null = everything enabled (pre-Phase-2 seed mode)
 }
 

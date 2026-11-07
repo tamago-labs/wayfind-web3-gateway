@@ -43,8 +43,9 @@ export default function McpAccessCard() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // Privy wallet id for the first embedded Solana wallet (never displayed).
-  const walletId = useMemo(() => {
+  // Privy wallet id + address for the first embedded Solana wallet.
+  // The id is never displayed; the address is stored so wallet tools work server-side.
+  const wallet = useMemo(() => {
     const accounts = (user?.linkedAccounts ?? []) as Array<{
       type: string;
       address?: string;
@@ -61,8 +62,10 @@ export default function McpAccessCard() {
     const match = accounts.find(
       (a) => a.address === first.address && embeddedIds.has(a.id as string),
     );
-    return (match?.id as string | undefined) ?? null;
+    if (!match?.id) return null;
+    return { id: match.id as string, address: first.address as string };
   }, [user, wallets]);
+  const walletId = wallet?.id ?? null;
 
   const refresh = useCallback(async () => {
     if (!walletId) return;
@@ -83,16 +86,34 @@ export default function McpAccessCard() {
 
   const issue = useCallback(
     async (previousHash: string | null) => {
-      if (!walletId) return;
+      if (!wallet?.id || !wallet?.address) return;
       setBusy(true);
       setError(null);
       setFreshUrl(null);
       try {
+        // Wallet tools read the UserProfile network server-side can't join,
+        // so stamp address + network at issuance (same scope the Logs page uses).
+        let network: 'mainnet' | 'testnet' = 'testnet';
+        if (user?.id) {
+          try {
+            const { data } = await dataClient.models.UserProfile.list({
+              filter: { ownerId: { eq: user.id } },
+            });
+            const row = (data ?? []).find((r) => r.ownerId === user.id) ?? null;
+            if (row?.network === 'mainnet' || row?.network === 'testnet') {
+              network = row.network;
+            }
+          } catch {
+            // Fall through on devnet scope.
+          }
+        }
         const serverId = randomServerId();
         const serverIdHash = await sha256Hex(serverId);
         await dataClient.models.McpToolConfig.create({
           serverIdHash,
-          walletId,
+          walletId: wallet.id,
+          walletAddress: wallet.address,
+          network,
           enabledTools: [],
         });
         if (previousHash) {
@@ -109,7 +130,7 @@ export default function McpAccessCard() {
         setBusy(false);
       }
     },
-    [walletId, refresh],
+    [wallet, user?.id, refresh],
   );
 
   const revoke = useCallback(async () => {

@@ -24,6 +24,10 @@ const schema = a.schema({
     .model({
       serverIdHash: a.string().required(),
       walletId: a.string().required(),
+      // Wallet tools need these server-side (the Lambda cannot join
+      // walletId → UserProfile). Set at issuance; older rows lack them.
+      walletAddress: a.string(),
+      network: a.enum(["mainnet", "testnet"]),
       enabledTools: a.string().array(),
     })
     .identifier(["serverIdHash"])
