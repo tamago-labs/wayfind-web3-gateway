@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Mascot from '@/components/Mascot';
 
@@ -40,6 +40,15 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
+          <a
+            href="https://www.wayfind.click"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 hover:opacity-60 transition-opacity"
+          >
+            Wayfind Cloud
+            <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
+          </a>
         </nav>
 
         {/* Enter App hidden for now — restore when /app goes live
@@ -72,6 +81,15 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="https://www.wayfind.click"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[15px] font-medium text-navy hover:opacity-60"
+            >
+              Wayfind Cloud
+              <ArrowRight className="h-4 w-4" strokeWidth={2.2} />
+            </a>
             {/* Enter App hidden for now — restore when /app goes live
             <Link href="/app" onClick={() => setOpen(false)} className="block mt-2 text-center rounded-full bg-navy px-5 py-2.5 text-[15px] font-medium text-white">
               Enter App
