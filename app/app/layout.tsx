@@ -36,12 +36,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { title, hint } = TITLES[pathname] ?? TITLES['/app/tools'];
 
+  // Embedded = created by Privy (walletClientType 'privy'); anything else is an
+  // external wallet the user connected. Source: user.linkedAccounts.
+  const embeddedByAddress = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    const accounts = (user?.linkedAccounts ?? []) as Array<{
+      type: string;
+      address?: string;
+      walletClientType?: string;
+    }>;
+    for (const a of accounts) {
+      if (a.type === 'wallet' && a.address) map[a.address] = a.walletClientType === 'privy';
+    }
+    return map;
+  }, [user]);
+
   const solanaWallets = useMemo(() => {
     const fromHook = solanaHookWallets.filter((w) => w.address);
-    if (fromHook.length > 0) return fromHook.map((w) => ({ address: w.address as string }));
+    const list = fromHook.length > 0 ? fromHook : wallets.filter((w) => w.address);
     // Fallback: app is solana-only, so any wallet here is treated as Solana.
-    return wallets.filter((w) => w.address).map((w) => ({ address: w.address as string }));
-  }, [wallets, solanaHookWallets]);
+    // Email-only login: show embedded wallets, filter out any legacy external ones.
+    return list
+      .map((w) => ({
+        address: w.address as string,
+        embedded: embeddedByAddress[w.address as string] ?? false,
+      }))
+      .filter((w) => w.embedded);
+  }, [wallets, solanaHookWallets, embeddedByAddress]);
 
   if (!ready) {
     return (
@@ -63,7 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </p>
           <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Set Up Your MCP Server</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-heroslate">
-            Login with email or Solana wallet with Privy. Then set up the MCP server endpoint to
+            Login with email secured by Privy. Then set up the MCP server endpoint to
             use in your Bots.
           </p>
           <button

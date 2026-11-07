@@ -6,9 +6,11 @@ import { revokeSignerFunction } from "../functions/revoke-signer/resource";
 const schema = a.schema({
   UserProfile: a
     .model({
+      ownerId: a.string(),
       email: a.string().required(),
       displayName: a.string(),
       region: a.string(),
+      network: a.enum(["mainnet", "testnet"]),
       plan: a.enum(["free", "starter", "premium", "enterprise"]),
     })
     .authorization((allow) => [allow.publicApiKey()]),

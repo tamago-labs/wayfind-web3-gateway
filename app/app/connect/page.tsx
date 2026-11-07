@@ -6,18 +6,17 @@ export default function ConnectPage() {
           Solana · Devnet
         </p>
         <p className="mt-2 text-lg font-bold">Wallets connect on login</p>
-        <p className="mt-2 text-sm text-heroslate">
-          Email login creates a Solana embedded wallet automatically. External wallets connect
-          through Privy. Your addresses live under the account button at the bottom of the
-          sidebar.
-        </p>
+          <p className="mt-2 text-sm text-heroslate">
+            Email login creates a Solana embedded wallet automatically. Your addresses live under
+            the account button at the bottom of the sidebar.
+          </p>
       </div>
       <div className="rounded-3xl border border-dashed border-navy/20 p-6 text-sm text-heroslate">
-        <p className="font-bold text-navy">External wallets arrive with the gateway</p>
-        <p className="mt-2">
-          Phantom and other Solana wallets will be linkable here. Delegated signing stays scoped
-          to Devnet until Mainnet opens.
-        </p>
+          <p className="font-bold text-navy">More wallets arrive with the gateway</p>
+          <p className="mt-2">
+            External wallets will be linkable here later. Delegated signing stays scoped to Devnet
+            until Mainnet opens.
+          </p>
       </div>
     </section>
   );

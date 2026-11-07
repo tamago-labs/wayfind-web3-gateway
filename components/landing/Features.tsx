@@ -13,8 +13,8 @@ const cards: { color: MascotColor; shape: MascotShape; title: string; body: stri
   {
     color: 'lagoon',
     shape: 'circle',
-    title: 'Privy Delegated Signing',
-    body: 'Embedded wallets you own. Wayfind gets a restricted signer under policies you approve. Revoke anytime.',
+    title: "Your bot's wallet, by Privy",
+    body: 'Use email to get a wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
   },
   {
     color: 'moss',

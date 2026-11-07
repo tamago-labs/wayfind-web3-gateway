@@ -2,10 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { useWallets } from '@privy-io/react-auth';
+import { generateClient } from 'aws-amplify/data';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
+import type { Schema } from '@/amplify/data/resource';
 
-const DEVNET_RPC = 'https://api.devnet.solana.com';
+const dataClient = generateClient<Schema>();
+
+const DEVNET_RPC =
+  process.env.NEXT_PUBLIC_SOLANA_DEVNET_RPC ?? 'https://api.devnet.solana.com';
+const MAINNET_RPC =
+  process.env.NEXT_PUBLIC_SOLANA_MAINNET_RPC ?? 'https://api.mainnet-beta.solana.com';
 
 interface Entry {
   signature: string;
@@ -15,10 +22,12 @@ interface Entry {
 }
 
 export default function LogsPage() {
+  const { user } = usePrivy();
   const { wallets } = useWallets();
   const { wallets: solanaHookWallets } = useSolanaWallets();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [network, setNetwork] = useState<'mainnet' | 'testnet'>('testnet');
 
   const solanaWallets = useMemo(() => {
     const fromHook = solanaHookWallets.filter((w) => w.address);
@@ -27,7 +36,23 @@ export default function LogsPage() {
   }, [wallets, solanaHookWallets]);
 
   const refresh = useCallback(async () => {
-    const connection = new Connection(DEVNET_RPC, 'confirmed');
+    // Scope follows the same UserProfile network the account modal saves.
+    let scope: 'mainnet' | 'testnet' = 'testnet';
+    if (user?.id) {
+      try {
+        const { data } = await dataClient.models.UserProfile.list({
+          filter: { ownerId: { eq: user.id } },
+        });
+        const row = (data ?? []).find((r) => r.ownerId === user.id) ?? null;
+        if (row?.network === 'mainnet' || row?.network === 'testnet') {
+          scope = row.network;
+        }
+      } catch {
+        // Fall through on devnet scope.
+      }
+    }
+    setNetwork(scope);
+    const connection = new Connection(scope === 'mainnet' ? MAINNET_RPC : DEVNET_RPC, 'confirmed');
     const lists = await Promise.all(
       solanaWallets.map(async (w) => {
         try {
@@ -51,7 +76,7 @@ export default function LogsPage() {
       lists.flat().sort((a, b) => (b.time ?? 0) - (a.time ?? 0)),
     );
     setLoaded(true);
-  }, [solanaWallets]);
+  }, [solanaWallets, user?.id]);
 
   useEffect(() => {
     void refresh();

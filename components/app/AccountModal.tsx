@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy, LogOut, X } from 'lucide-react';
+import { generateClient } from 'aws-amplify/data';
+import { usePrivy } from '@privy-io/react-auth';
 import Mascot from '@/components/Mascot';
+import type { Schema } from '@/amplify/data/resource';
+
+const dataClient = generateClient<Schema>();
 
 type Net = 'mainnet' | 'testnet';
 
@@ -11,7 +16,7 @@ interface AccountModalProps {
   open: boolean;
   onClose: () => void;
   email?: string;
-  wallets: { address: string }[];
+  wallets: { address: string; embedded: boolean }[];
   onLogout: () => void;
 }
 
@@ -20,8 +25,58 @@ function truncate(address: string) {
 }
 
 export default function AccountModal({ open, onClose, email, wallets, onLogout }: AccountModalProps) {
-  const [net, setNet] = useState<Net>('mainnet');
+  const { user } = usePrivy();
+  const [net, setNet] = useState<Net>('testnet');
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Network scope lives in UserProfile so the gateway knows it later.
+  // Get-or-create on open; Testnet (Devnet scope) is the default.
+  useEffect(() => {
+    if (!open || !user?.id) return;
+    const ownerId = user.id;
+    let alive = true;
+    void (async () => {
+      try {
+        const { data } = await dataClient.models.UserProfile.list({
+          filter: { ownerId: { eq: ownerId } },
+        });
+        const row = (data ?? []).find((r) => r.ownerId === ownerId) ?? null;
+        if (!alive) return;
+        if (row) {
+          setProfileId(row.id);
+          if (row.network === 'mainnet' || row.network === 'testnet') setNet(row.network);
+        } else {
+          const created = await dataClient.models.UserProfile.create({
+            ownerId,
+            email: email ?? '',
+            network: 'testnet',
+          });
+          if (!alive) return;
+          if (created.data) {
+            setProfileId(created.data.id);
+            setNet('testnet');
+          }
+        }
+      } catch {
+        // Scope toggle still works locally; persistence retries next open.
+        if (alive) setProfileId(null);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [open, user?.id, email]);
+
+  const selectNet = async (n: Net) => {
+    setNet(n);
+    if (!profileId) return;
+    try {
+      await dataClient.models.UserProfile.update({ id: profileId, network: n });
+    } catch {
+      // Local toggle stands; save retries on next change.
+    }
+  };
 
   const copy = async (address: string) => {
     try {
@@ -61,7 +116,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-bold">{email ?? 'Signed in'}</p>
-                <p className="text-xs font-medium text-heroslate">Wayfind MCP account</p>
+                <p className="text-xs font-medium text-heroslate">Your account</p>
               </div>
               <button
                 onClick={onClose}
@@ -72,13 +127,16 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               </button>
             </div>
 
-            <div className="mt-5 flex gap-2" role="tablist" aria-label="Network">
+            <p className="mt-5 text-xs font-bold uppercase tracking-wider text-heroslate">
+              Network scope
+            </p>
+            <div className="mt-2 flex gap-2" role="tablist" aria-label="Network scope">
               {(['mainnet', 'testnet'] as Net[]).map((n) => (
                 <button
                   key={n}
                   role="tab"
                   aria-selected={net === n}
-                  onClick={() => setNet(n)}
+                  onClick={() => selectNet(n)}
                   className={`flex-1 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
                     net === n ? 'bg-navy text-white' : 'bg-navy/5 text-navy hover:bg-navy/10'
                   }`}
@@ -87,6 +145,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
                 </button>
               ))}
             </div>
+
 
             <div className="mt-4 space-y-3">
               {wallets.length === 0 ? (
@@ -106,9 +165,16 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/solana.png" alt="Solana" className="h-7 w-7 shrink-0 rounded-full" />
                     <div className="min-w-0">
-                      <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
-                        Solana · {net === 'mainnet' ? 'Mainnet' : 'Testnet'}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
+                          Solana
+                        </p>
+                        {net === 'testnet' && (
+                          <span className="rounded-full bg-bamber/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy">
+                            Devnet
+                          </span>
+                        )}
+                      </div>
                       <p className="truncate font-mono text-sm font-semibold" title={w.address}>
                         {truncate(w.address)}
                       </p>
@@ -129,7 +195,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               )}
               {wallets.length > 0 && (
                 <p className="text-xs text-heroslate">
-                  One keypair serves both networks until the gateway scopes signing.
+                  Your main wallet, created by Privy — fund it to get started.
                 </p>
               )}
             </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
-import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '';
 const clientId = process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID;
@@ -24,19 +23,16 @@ export default function PrivyProviders({ children }: { children: React.ReactNode
     <PrivyProvider
       appId={appId}
       {...(clientId ? { clientId } : {})}
+      // Email-only for now: external wallet login is unproven in this app.
+      // Re-add wallet login + externalWallets connectors once tested.
       config={{
-        loginMethods: ['email', 'wallet'],
+        loginMethods: ['email'],
         appearance: {
           walletChainType: 'solana-only',
         },
         embeddedWallets: {
           solana: {
             createOnLogin: 'users-without-wallets',
-          },
-        },
-        externalWallets: {
-          solana: {
-            connectors: toSolanaWalletConnectors(),
           },
         },
       }}

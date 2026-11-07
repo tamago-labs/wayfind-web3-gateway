@@ -14,11 +14,16 @@ const NAV: { href: string; label: string; icon: typeof Wrench }[] = [
   { href: '/app/logs', label: 'Logs', icon: ScrollText },
 ];
 
+export interface SidebarWallet {
+  address: string;
+  embedded: boolean;
+}
+
 interface AppSidebarProps {
   open: boolean;
   onClose: () => void;
   email?: string;
-  wallets: { address: string }[];
+  wallets: SidebarWallet[];
   onLogout: () => void;
 }
 

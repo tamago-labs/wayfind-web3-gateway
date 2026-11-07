@@ -28,11 +28,25 @@ export default function AuthorizationPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Signers only attach to embedded wallets — external ones can't delegate.
   const solanaWallets = useMemo(() => {
+    const embedded = new Set(
+      (
+        (user?.linkedAccounts ?? []) as Array<{
+          type: string;
+          address?: string;
+          walletClientType?: string;
+        }>
+      )
+        .filter((a) => a.type === 'wallet' && a.walletClientType === 'privy' && a.address)
+        .map((a) => a.address as string),
+    );
     const fromHook = solanaHookWallets.filter((w) => w.address);
-    if (fromHook.length > 0) return fromHook.map((w) => ({ address: w.address as string }));
-    return wallets.filter((w) => w.address).map((w) => ({ address: w.address as string }));
-  }, [wallets, solanaHookWallets]);
+    const list = fromHook.length > 0 ? fromHook : wallets.filter((w) => w.address);
+    return list
+      .map((w) => ({ address: w.address as string }))
+      .filter((w) => embedded.has(w.address));
+  }, [wallets, solanaHookWallets, user]);
 
   // Privy wallet id per address (needed for server reads). Ids never leave
   // the Privy user object except into our own backend calls.
@@ -137,9 +151,10 @@ export default function AuthorizationPage() {
 
       {solanaWallets.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-navy/20 p-6 text-sm text-heroslate">
-          <p className="font-bold text-navy">No wallets to authorize yet.</p>
+          <p className="font-bold text-navy">No embedded wallet to authorize yet.</p>
           <p className="mt-2">
-            Your Solana wallet appears here after login. Check Connect if this stays empty.
+            Only Privy embedded wallets can delegate. Yours is created automatically at login —
+            check the account button below if this stays empty.
           </p>
         </div>
       ) : (
