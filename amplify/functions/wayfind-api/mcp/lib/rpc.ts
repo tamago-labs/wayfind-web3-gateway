@@ -25,6 +25,19 @@ export async function getBalanceSol(network: "mainnet" | "testnet", address: str
   return lamports.value / 1_000_000_000;
 }
 
+export async function getBalanceLamports(
+  network: "mainnet" | "testnet",
+  address: string,
+): Promise<number> {
+  const res = await rpc<{ value: number }>(network, "getBalance", [address]);
+  return res.value;
+}
+
+export async function getLatestBlockhash(network: "mainnet" | "testnet"): Promise<string> {
+  const res = await rpc<{ value: { blockhash: string } }>(network, "getLatestBlockhash", []);
+  return res.value.blockhash;
+}
+
 export interface SigEntry {
   signature: string;
   blockTime: number | null;

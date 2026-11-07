@@ -35,6 +35,7 @@ const CATALOG: {
     tools: [
       { name: 'get_balance', description: 'Read the SOL balance of the attached wallet.' },
       { name: 'get_history', description: 'Read the latest transactions, newest first.' },
+      { name: 'send_sol', description: 'Send SOL. Limits enforced by the Privy policy.' },
     ],
   },
   { id: 'stocks', label: 'Tokenized stocks', tools: [], comingSoon: true },
