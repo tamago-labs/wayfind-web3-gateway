@@ -1,229 +1,195 @@
-# Wayfind Cloud
+<p align="center"><strong>Wayfind Web3 Gateway for AI Agents</strong></p>
 
-> Always-on AI teammates for small businesses — powered by Meta open-weight models + serverless Firecracker microVMs.
+# Wayfind Web3 Gateway for AI Agents
 
-**Hackathon Highlights**
-- Always-on AI teammates that work across **100+ business apps**
-- Each account gets an isolated Firecracker microVM that **pauses when idle and resumes in seconds**
-- Primary intelligence: **Muse Spark Open** (self-hosted on Modal) + Muse Image, Muse Voice, and grounded search
-- Real business workflows: bookkeeping, reconciliation, invoicing, approvals, and routines
-- Built for affordability — continuous AI without enterprise cost
+> Give always-on agents like Grok Bot on-chain access via a remote MCP server — with scoped tools and Privy delegated signing.
 
-## Overview
+**Your AI Bots can now transact onchain.** One remote MCP server connects Grok Bot,
+Claude, or Cursor to your Solana wallet. Spending caps and program allowlists are
+enforced by Privy before anything is signed.
 
-Small businesses already use AI to cut the cost of professional services. Work that once took an accountant, auditor, or consultant 10 hours can often be reduced to 2–3 hours when AI organizes records, prepares documents, and handles routine tasks. Human professionals are still essential, but businesses can spend less on repetitive billable hours.
+## Highlights
 
-Wayfind delivers always-on AI teammates for everyday business workflows. Connected to 100+ business apps, they operate directly within the tools teams already use. We combined Meta's cost-efficient open-weight models with serverless Firecracker microVMs on AWS. Each account gets a lightweight, isolated cloud computer that pauses when idle and resumes in seconds, making continuous, always-available AI practical and affordable for small teams.
+- **One remote MCP server** — a single Streamable-HTTP endpoint per wallet and scope. No local machine, no private keys on any device.
+- **You own the wallet** — sign in with email to get a Privy embedded wallet. Wayfind is added as a restricted signer under policies you approve.
+- **10+ tools, 3 categories** — Wallet Operations, OKX DEX Swaps, Stablecoin Finance. Enable only what each Bot may call.
+- **Enforceable policies** — spending caps (≤1 SOL / ≤5 USDC), a tight 8-program allowlist, or the default no-export policy. Revoke anytime.
+- **Works out of the box** — Grok Bot, Claude, Cursor, VS Code, any MCP client, and Bots in Wayfind Cloud (Connectors → Web3).
 
-## Quick links
+## Why a Web3 gateway
 
-| Resource | Link |
-|---|---|
-| Live | https://wayfind.click |
-| Video Demo (3 mins) | https://youtu.be/TM7GRNuOMcY |
-| Documentation | https://wayfind.click/docs |
-| Presentation | [Pitch deck](./docs/presentation.html) |
-| X | https://x.com/WayfindCloud |
+Chat bots can read blockchains but can't act on them — and handing a bot your
+private key is not an option. Wayfind Web3 splits the problem: the bot only ever
+sees an MCP URL, while signing stays inside Privy's secure enclaves under a
+policy you chose. Every transaction is built server-side from fixed templates,
+signed by a restricted signer, and checked against your policy before broadcast.
 
-## Background
+### Security boundaries
 
-AI help for business work arrived in three generations. Each added power — and each still demands something a small team can't spare:
+- The agent never touches Privy and never sees a private key. It calls MCP tools; the Lambda builds the transaction.
+- Private-key export is denied under every policy, including the default.
+- The backend only ever uses `signTransaction` / `signMessage` through its own platform signer. It cannot change the policy — policy assignment happens at authorize time.
+- Scope is stamped at URL issuance: a testnet URL can never move mainnet funds, and old URLs keep their original scope after a scope switch.
 
-| Generation | What it added | What it still demands |
+## Tools
+
+| Category | Tool | What it does |
 |---|---|---|
-| Chat (2022 onwards) | Answers on demand — ask anything, get a draft | Your time: copy-paste across apps, no memory of your tools |
-| Self-hosted automation (2024 onwards) | Full automation with open-source tools on a cloud server | Your ops: separate VM & AI bills, $50–70/month, setup and upkeep |
-| Always-on agents (2026 onwards) | Agents that work 24/7, from Grok Bot to OpenAI Dots and Claude Duet | Your independence: bundled into suites, not sold standalone, enterprise IT expected |
+| Wallet Operations | `get_wallet_address` | Show the attached wallet address and network |
+| | `get_balances` | Read SOL plus every token balance, including stocks |
+| | `get_history` | Read the latest transactions, newest first |
+| | `get_transaction` | Look up one transaction by signature |
+| | `send_tokens` | Send SOL or SPL tokens by symbol. Policy-enforced |
+| OKX DEX Swaps | `okx_get_quote` | Read-only swap quote (Solana mainnet) |
+| | `okx_swap_tokens` | Swap via OKX DEX. Mainnet only, policy-enforced |
+| Stablecoin Finance | `usdc_unified_balance` | Total USDC + per-chain breakdown. Read-only |
+| | `usdc_chains` | Valid destination chains for the current network. Read-only |
+| | `usdc_deposit` | Deposit USDC into unified balance. Policy-enforced |
+| | `usdc_spend` | Spend USDC, optionally cross-chain. Policy-enforced |
 
-## System overview
+New MCP URLs start with zero tools enabled — add them per URL in the app's Tools page.
 
-Wayfind gives each account a team of named Bots and one shared cloud computer for them to work on — an isolated Firecracker MicroVM that suspends when idle and resumes in seconds.
+## Quick start (user flow)
 
-- **The team:** Bots with their own job, memory, and face — message them like colleagues.
-- **The computer:** one per account, shared by all Bots, with files, browser, and tools in one workspace.
-- **The trust:** connect apps once for the whole team, schedule routines that run on their own, and approve anything irreversible before it happens.
+1. **Sign in** — email login creates your Privy embedded wallet automatically.
+2. **Add tools** — in `/app/tools`, enable only the tools each Bot may call.
+3. **Connect** — in `/app/connect`, generate the MCP URL and paste it into your client:
+   Grok Bot, Claude, Cursor, VS Code — or Wayfind Cloud via Connectors (bottom-left) → Web3.
+4. **Fund & authorize** — fund the wallet, then in `/app/authorization` pick a policy
+   (Default, Spending caps, or Tight allowlist) and authorize Wayfind as a signer.
+5. **Use it** — ask your client to check a balance. Writes are policy-checked on every signature.
 
-## User flow
 
-1. **Start free.** Sign in, no credit card.
-2. **Meet Wayfind.** Every account starts with a Wayfind Bot, a chief of staff that already knows its way around.
-3. **Create Bots per job.** “Aria — bookkeeping” beats “Assistant”: one Bot per job, with its own memory, color, and shape.
-4. **Connect your tools.** Import a connector once — Zoho CRM, Stripe, Outlook — and every Bot can use it immediately.
-5. **Hand off real work.** “Reconcile last week's invoices.” Bots work in the background on your cloud computer; close the laptop, come back to results.
-6. **Approve what matters.** Bots stop for your OK before sending, paying, publishing, or changing important records.
-7. **Automate.** Make a reliable job recurring and it becomes a routine — run history, pause/resume included.
-
-Full walkthrough: https://wayfind.click/docs/quickstart
-
----
-
-## System architecture
+## Architecture
 
 ```mermaid
 flowchart TB
-    USER[User / Next.js App]
-    API[Wayfind API<br/>AWS Lambda]
-    AUTH[Cognito + AppSync]
-    VM[Account Cloud Computer<br/>Firecracker MicroVM]
-    S3[(S3 Workspace Sync)]
+    CLIENT[MCP client<br/>Grok Bot / Claude / Cursor / Wayfind Cloud]
+    MCP[Wayfind API<br/>AWS Lambda MCP endpoint<br/>Streamable HTTP]
+    DATA[(Amplify Data<br/>McpToolConfig<br/>wallet + scope stamp + tools)]
+    POLICY{Privy policy check<br/>caps / allowlist / export-deny}
+    PRIVY[Privy secure enclave<br/>restricted platform signer]
+    SOL[Solana RPC]
+    OKX[OKX DEX API]
+    CIRCLE[Circle Gateway]
 
-    USER --> API
-    USER <--> AUTH
-    API --> VM
-    VM <--> S3
-    VM <--> AUTH
-
-    subgraph Runtime["Shared Account Runtime"]
-        AGENT[Bot Agent Runtime]
-        MEMORY[Bot Identity & Memory]
-        MCP[MCP Tool Registry]
-        ROUTINES[Scheduled Routines]
-        APPROVAL[Approval Workflow]
-
-        AGENT <--> MEMORY
-        AGENT <--> MCP
-        AGENT <--> ROUTINES
-        AGENT --> APPROVAL
-    end
-
-    VM --> AGENT
-
-    AGENT --> MODAL[Modal Inference<br/>Muse Spark Open]
-    AGENT --> META[Meta Model API]
-    META --> SEARCH[Grounded Research]
-    META --> IMAGE[Muse Image]
-    META --> VOICE[Muse Voice]
-
-    MCP --> CONNECTORS[Business Services]
-    APPROVAL --> USER
+    CLIENT -->|MCP URL + scope| MCP
+    MCP -->|read configs| DATA
+    MCP -->|server-built tx| POLICY
+    POLICY -->|allow| PRIVY
+    PRIVY -->|signed tx| SOL
+    MCP --> OKX
+    MCP --> CIRCLE
 ```
 
-### Task execution lifecycle
+## Policies
 
-A typical task moves through the following stages:
-
-1. **Receive:** The user sends a task to a specific Bot.
-2. **Load context:** Wayfind loads the Bot's identity, memory, and account context.
-3. **Resume:** The account's cloud computer is made available if suspended.
-4. **Reason:** The agent uses Muse Spark Open to interpret the task and determine the next steps.
-5. **Execute:** The agent accesses workspace files and connected services through its available tools.
-6. **Specialize:** Grounded research, image generation, or voice transcription uses the corresponding Meta model capability.
-7. **Review:** The Bot prepares the result and requests approval for configured sensitive actions.
-8. **Persist:** Workspace changes are synchronized so future work can continue from the existing environment.
-
----
-
-## Business tools, connected once
-
-Bots work where business work already happens. Connect an app once at the account level and every Bot can use it — no copy-paste between tabs.
-
-Zoho is our deepest bench: Books, CRM, Mail, Desk, Billing, Invoice, Expense, Payroll, People, Calendar, Cliq, Bookings, Sign, Meeting, Forms, Survey, Social, and WorkDrive — thousands of Bot-ready actions from reconciling banks to drafting emails.
-
-| Area | Example apps |
+| Policy | Enforces |
 |---|---|
-| Sales & CRM | Zoho CRM, HubSpot, Pipedrive, Apollo |
-| Finance | Zoho Books, Zoho Billing, Stripe, FreshBooks |
-| Email & comms | Zoho Mail, Outlook, Teams, Twilio |
-| Support | Zoho Desk, Zendesk, Freshdesk |
-| Marketing | Zoho Social, Mailchimp, Klaviyo, Brevo |
-| Projects | Asana, ClickUp, Monday, Jira |
-| Scheduling | Zoho Bookings, Calendly, Cal.com |
-| Files & ops | Zoho WorkDrive, Notion, Zoho Sign |
+| Default — no key exports | Blocks private-key export, allows everything else |
+| Spending caps | ≤1 SOL and ≤5 USDC per transaction; swaps via Jupiter or OKX only |
+| Tight allowlist | Only 8 known programs (System, Token ×2, Associated Token, Memo, Compute Budget, Jupiter, OKX router) |
 
-Full list: https://wayfind.click/connectors. Sensitive actions can be gated by approval workflows.
+Policy is chosen per wallet at authorize time and stamped by Privy — the app reads
+live state, not a copy. Notes:
 
----
+- Privy rejects condition-less `signTransaction` rules, so signing permissions mirror the instruction-level rules on both signing methods.
+- Address-based conditions (e.g. recipient allowlists) fail on transactions using Address Lookup Tables — the policies use program and amount conditions instead, which are ALT-safe.
+- Gateway deposits need the Circle Gateway program added to the tight allowlist before they pass under it.
 
-## AWS infrastructure
-
-AWS provides the execution, storage, authentication, and application infrastructure.
-
-| Service | Responsibility |
-|---|---|
-| **Lambda MicroVMs / Firecracker** | Isolated account-level cloud computers |
-| **Amplify** | Next.js hosting, backend functions, and application infrastructure |
-| **S3** | Persistent workspace synchronization and distribution of MCP registry and skills |
-| **AppSync** | Application data and real-time updates |
-| **Cognito** | Authentication and account identity |
-
-The important distinction is that Wayfind does not provision one permanently running machine for every Bot. It shares one account-level computer across the AI team and suspends execution when idle.
-
----
-
-## Implementation details
-
-The main application is built with Next.js and TypeScript. The cloud computer hosts the agent runtime and its available tools.
-
-**What the computer is:** `packages/computer/` is a Node.js agent server (agent loop, tools, MCP clients, skills, routines, approvals, usage metering) that runs inside an AWS Lambda MicroVM. Each account gets one isolated VM; Bots share it.
-
-**Local vs cloud:**
-
-| | Local | Cloud |
-|---|---|---|
-| Agent server | `npx tsx src/server.ts` on `:8080` for development | Same server compiled to `dist/`, baked into the MicroVM image |
-| Workspace | `packages/computer/workspace/` on disk | Synced to S3 per account, restored on resume |
-| Keys | `.env` / keystore on your machine | Zero keys in the image — injected per-VM at boot from Amplify secrets |
-
-**How `packages/computer/scripts/image/` works:** the golden-image pipeline packages the agent into a bootable MicroVM image.
-
-1. `01-package-upload.ts` — builds `dist/`, stages the bundle, zips, and uploads to S3.
-2. `02-create-image.ts` — creates the MicroVM image from the bundle and polls until `CREATED`.
-3. `03-run-computer.ts` — boots a VM from the image for verification; `04-terminate-computer.ts` tears it down.
-
-### Technology stack
-
-- **Frontend:** Next.js, TypeScript
-- **AI:** Muse Spark Open, Muse Spark grounding, Muse Image, Muse Voice
-- **Inference:** Modal
-- **Agent runtime:** Node.js
-- **Cloud compute:** AWS Lambda MicroVMs / Firecracker
-- **Backend:** AWS Amplify, Lambda, AppSync, Cognito
-- **Storage:** Amazon S3
-- **Integrations:** Model Context Protocol (MCP)
-
----
-
-## Quickstart
+## Local development
 
 ### Requirements
 
-- Node.js and npm
+- Node.js 20+ and npm
 - An AWS account configured for AWS Amplify
-- Access to the required Meta model endpoints and credentials
+- A Privy app (email login + Solana embedded wallets enabled)
+
+Install with `--legacy-peer-deps` (the Circle kits bundle their own web3.js v1,
+which conflicts at peer resolution — the app aliases it separately at build time).
 
 ### Clone and install
 
 ```bash
-git clone https://github.com/tamago-labs/wayfind-cloud.git
-cd wayfind-cloud
-npm install
-```
-
-### Start the Amplify sandbox
-
-```bash
-npx ampx sandbox
+git clone https://github.com/tamago-labs/wayfind-web3-gateway.git
+cd wayfind-web3
+npm install --legacy-peer-deps
 ```
 
 ### Configure environment variables
 
+Create `.env.local` (gitignored). Plain IDs go in as values; secrets are stored as
+Amplify `secret()` entries for deployed environments and mirrored in `.env.local`
+for the sandbox. See `amplify/functions/propose-signer/resource.ts` and
+`amplify/functions/wayfind-api/resource.ts` for the authoritative list.
+
 ```bash
-MODAL_API_KEY=          # Modal endpoint serving Muse Spark Open
-PROVIDER_API_KEY=       # Meta Model API credentials
-COMPUTER_API_URL=       # Wayfind API Function URL
+# Public / plain
+NEXT_PUBLIC_PRIVY_APP_ID=
+PRIVY_APP_ID=
+PRIVY_SIGNER_ID=
+PRIVY_SIGNER_NAME=
+PRIVY_DEFAULT_POLICY_ID=
+PRIVY_SPENDING_CAPS_POLICY_ID=
+PRIVY_TIGHT_POLICY_ID=
+NEXT_PUBLIC_SOLANA_DEVNET_RPC=
+NEXT_PUBLIC_SOLANA_MAINNET_RPC=
+
+# Secrets (Amplify secret() in deployed envs)
+PRIVY_APP_SECRET=
+PRIVY_AUTH_PRIVATE_KEY=      # format: wallet-auth:<base64>
+OKX_API_KEY=
+OKX_SECRET_KEY=
+OKX_PASSPHRASE=
 ```
 
-Additional AWS and application configuration may be required depending on your environment.
+The sandbox and hosted environments need their secrets set separately — a key that
+exists only in `.env.local` will fail closed in a deployed Lambda.
 
 ### Run locally
 
 ```bash
+npx ampx sandbox
 npm run dev
 ```
 
 Open http://localhost:3000.
 
----
+### Checks
+
+```bash
+npx tsc --noEmit                       # must be clean (ignoring pre-existing $amplify/env stubs)
+npx tsx scripts/privy-tests/run.ts     # Privy connection, policy, and signer checks
+```
+
+## Verify
+
+1. `tools/list` on a fresh URL returns zero tools; enable tools in `/app/tools` and confirm they appear.
+2. Authorize a devnet wallet under Spending caps: a small SOL send succeeds, an over-cap send is denied with a policy error.
+3. Read-only tools (`get_balances`, `get_history`, `okx_get_quote`) work without authorization.
+4. After any backend deploy, allow a minute for propagation — the endpoint can return transient `403 {"Message":null}` responses while the new revision rolls out.
+
+## Repository layout
+
+| Path | What lives here |
+|---|---|
+| `app/` | Next.js pages — landing (`/`) and console (`/app/*`) |
+| `components/landing/` | Landing sections (Hero, Features, How, UseCases, Connectors, CTA, Footer) |
+| `components/app/` | Console components (ToolsConsole, McpAccessCard, McpClientTabs, Authorization) |
+| `amplify/functions/wayfind-api/` | MCP endpoint: registry, tools, shared libs (rpc, privy, tokens, tx, okx, circle) |
+| `amplify/functions/propose-signer/` | Signer discovery + policy selection for authorization |
+| `amplify/functions/wallet-state/` | Live wallet/delegation reads from Privy |
+| `amplify/data/` | Data schema (`McpToolConfig`, function bindings) |
+| `data/tokens/` | Mainnet/devnet token registry + prepare script |
+| `scripts/privy-tests/` | Privy connection, policy, and signer check scripts |
+
+## Project status
+
+Under development on Solana devnet, with mainnet paths (OKX swaps, USDC finance)
+guarded by scope + policy.
+
+- Wayfind Cloud: https://wayfind.click (Connectors → Web3)
+- Gateway repo: https://github.com/tamago-labs/wayfind-web3-gateway
 
 ## License
 
