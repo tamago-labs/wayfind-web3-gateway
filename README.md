@@ -16,9 +16,9 @@ Connect Grok Bot, Claude, Cursor, or your Wayfind Cloud Bots. They can check bal
 
 ## Demo
 
-2-minute walkthrough — a bot checking balances and quoting a swap through the gateway:
+3-minute walkthrough — setup, a bot checking balances and quoting a swap through the gateway:
 
-https://www.youtube.com/watch?v=4MxQVFTu8Yc
+https://youtu.be/3qEZbgL4Wb4
 
 Live proof — a transaction the bot executed on Solana mainnet:
 
