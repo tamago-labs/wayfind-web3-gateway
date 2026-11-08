@@ -84,9 +84,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Mascot color="white" size="xs" motion="none" label="Wayfind mascot" />
           </span>
           <p className="mt-3 text-xs font-bold uppercase tracking-wider text-heroslate">
-            Wayfind Web3 Gateway
+            Remote MCP Server
           </p>
-          <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Set Up Your MCP Server</h1>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Welcome Back!</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm text-heroslate">
             Login with email secured by Privy. Then set up the MCP server endpoint to
             use in your Bots.

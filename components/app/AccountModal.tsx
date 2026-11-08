@@ -193,8 +193,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               )}
               {wallets.length > 0 && (
                 <p className="text-xs text-heroslate">
-                  Switching scope? Regenerate your MCP URL in Connect — scope is stamped at
-                  issuance and old URLs keep the previous scope.
+                  Switching scope? Regenerate your MCP URL in Connect. Each URL is locked to the scope it was created with.
                 </p>
               )}
             </div>

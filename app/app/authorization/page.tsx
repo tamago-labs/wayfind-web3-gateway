@@ -212,10 +212,15 @@ export default function AuthorizationPage() {
 
   return (
     <section className="mx-auto max-w-3xl space-y-4 pt-2">
-      <div className="rounded-3xl border border-navy/10 bg-white p-6 shadow-sm">
+      <div
+        className="rounded-3xl p-6 text-white shadow-sm"
+        style={{
+          background: 'linear-gradient(150deg, #0E1B2C 0%, #1B2A4A 55%, #2F7BFF 160%)',
+        }}
+      >
         <p className="mt-2 text-lg font-bold">Choose what your Bots are allowed to do</p>
-        <p className="mt-2 text-sm text-heroslate">
-          Pick a policy and authorize — you stay the owner, revoke anytime.
+        <p className="mt-2 text-sm text-white/70">
+          Pick a policy and authorize. You stay the owner and can revoke anytime.
         </p>
       </div>
 
