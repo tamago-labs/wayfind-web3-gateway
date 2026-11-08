@@ -147,11 +147,18 @@ export default function AuthorizationPage() {
     ? currentPolicyKey(activeStatus.policyIds)
     : null;
 
+  const serverError = (res: { errors?: Array<{ message?: string }> | null }): string | null =>
+    res.errors?.[0]?.message ?? null;
+
   const attach = async (address: string, key: PolicyKey) => {
     const proposed = await dataClient.mutations.proposeSigner({
       walletAddress: address,
       policyKey: key,
     });
+    // Surface the backend's real error (policy mapping, signer lookup)
+    // instead of masking it — AppSync nulls data when the resolver throws.
+    const err = serverError(proposed as unknown as { errors?: Array<{ message?: string }> | null });
+    if (err) throw new Error(err);
     const result = proposed.data as unknown as { signerId?: string; policyId?: string } | null;
     if (!result?.signerId) throw new Error('Signer is not configured yet');
     await addSigners({

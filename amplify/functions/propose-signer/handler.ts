@@ -38,10 +38,13 @@ export const handler: Handler = async (event) => {
   // and fail-closes on anything unknown. Ids are not secrets (they are
   // readable off any authorized wallet), so hardcoded fallbacks are safe.
   const policyByKey: Record<string, string> = {
-    default: env.PRIVY_DEFAULT_POLICY_ID ?? "",
+    // NOTE: use || not ?? — Amplify injects unconfigured env as "" (empty
+    // string), which ?? would keep, silently dropping the hardcoded fallback
+    // and failing every non-default authorize with "Unknown policy".
+    default: env.PRIVY_DEFAULT_POLICY_ID || "",
     caps:
-      env.PRIVY_SPENDING_CAPS_POLICY_ID ?? "us7w1phwzpr2c3vsw3mgeb8r",
-    tight: env.PRIVY_TIGHT_POLICY_ID ?? "sma14e3q3s2fdr9172k2csej",
+      env.PRIVY_SPENDING_CAPS_POLICY_ID || "us7w1phwzpr2c3vsw3mgeb8r",
+    tight: env.PRIVY_TIGHT_POLICY_ID || "sma14e3q3s2fdr9172k2csej",
   };
   const key = policyKey ?? "default";
   const policyId = policyByKey[key];
