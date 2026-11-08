@@ -18,6 +18,7 @@ interface Entry {
   name: string;
   logo: string | null;
   kind: "native" | "stable" | "stock" | "preipo";
+  decimals?: number;
 }
 
 // High-confidence CoinMarketCap logo IDs only; everything else falls back
@@ -40,7 +41,24 @@ function load<T>(name: string): T {
   return JSON.parse(readFileSync(join(SRC, name), "utf8")) as T;
 }
 
-const main = () => {
+async function rpc<T>(method: string, params: unknown[]): Promise<T> {
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
+  const res = await fetch("https://api.mainnet-beta.solana.com", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+  const json = (await res.json()) as { result?: T; error?: { message?: string } };
+  if (json.error) throw new Error(json.error.message ?? method);
+  return json.result as T;
+}
+
+async function chainDecimals(mint: string): Promise<number | null> {
+  const r = await rpc<{ value?: { decimals?: number } }>("getTokenSupply", [mint]);
+  return typeof r?.value?.decimals === "number" ? r.value.decimals : null;
+}
+
+const main = async () => {
   const base = load<{ symbol: string; name: string; decimals: number; address: string }[]>(
     "base-tokens.json",
   );
@@ -52,8 +70,8 @@ const main = () => {
   const mainnet = new Map<string, Entry>();
   const devnet = new Map<string, Entry>();
 
-  // SOL first in both (UI always shows it).
-  const sol: Entry = { mint: NATIVE_MINT, symbol: "SOL", name: "Solana", logo: "/solana.png", kind: "native" };
+  // SOL first in both (UI always shows it). Native SOL uses 9 decimals.
+  const sol: Entry = { mint: NATIVE_MINT, symbol: "SOL", name: "Solana", logo: "/solana.png", kind: "native", decimals: 9 };
   mainnet.set(NATIVE_MINT, sol);
   devnet.set(NATIVE_MINT, sol);
 
@@ -65,6 +83,9 @@ const main = () => {
       name: t.name,
       logo: STABLE_LOGO[t.address] ?? null,
       kind: "stable",
+      // base-tokens.json carries audited decimals — keep them so the backend
+      // never has to RPC-fetch decimals for these at request time.
+      decimals: t.decimals,
     };
     (DEVNET_MINTS.has(t.address) ? devnet : mainnet).set(t.address, entry);
   }
@@ -104,6 +125,28 @@ const main = () => {
     });
     preCount++;
   }
+
+  // RWA / pre-IPO sources carry no decimals — fetch from chain once, here,
+  // so request-time code never depends on RPC for them. getTokenSupply works
+  // on restricted public RPCs; failures leave decimals undefined and the
+  // backend falls back to an OKX probe (quotes) or getTokenSupply (sends).
+  const missing = [...mainnet.values(), ...devnet.values()].filter(
+    (e) => typeof e.decimals !== "number" && e.mint !== NATIVE_MINT,
+  );
+  let filled = 0;
+  for (const e of missing) {
+    try {
+      const d = await chainDecimals(e.mint);
+      if (typeof d === "number") {
+        e.decimals = d;
+        filled++;
+      }
+    } catch {
+      // leave undefined — runtime fallback covers it
+    }
+    await new Promise((r) => setTimeout(r, 200)); // be gentle on public RPC
+  }
+  if (missing.length > 0) console.log(`decimals: filled ${filled}/${missing.length} from chain`);
 
   const outDir = join(ROOT, "data", "tokens");
   mkdirSync(outDir, { recursive: true });

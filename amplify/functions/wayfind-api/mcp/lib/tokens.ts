@@ -7,6 +7,9 @@ export interface TokenMeta {
   name: string;
   logo: string | null;
   kind: "native" | "stable" | "stock" | "preipo";
+  /** Audited at registry-build time. Absent for tokens the chain lookup
+   * couldn't cover — callers must fall back (OKX probe / getTokenSupply). */
+  decimals?: number;
 }
 
 type Network = "mainnet" | "testnet";
@@ -30,4 +33,11 @@ export function findBySymbol(symbol: string, network: Network): TokenMeta | null
     if (t.symbol.toUpperCase() === want) return t;
   }
   return null;
+}
+
+/** Registry-first decimals — avoids an RPC round trip (and restricted-RPC
+ * failures) for every token the registry build covered. */
+export function findDecimals(symbol: string, network: Network): number | null {
+  const meta = findBySymbol(symbol, network);
+  return typeof meta?.decimals === "number" ? meta.decimals : null;
 }

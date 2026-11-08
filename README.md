@@ -26,7 +26,6 @@ Wayfind Web3 provides a separate permission layer between AI agents and your wal
 - **Control what agents can do.** Enable only the MCP tools you want each agent to access, from reading balances to sending tokens and executing swaps.
 - **Set transaction policies.** Apply spending caps or restrict transactions to an allowlist of known programs.
 - **Connect from anywhere.** Use one remote MCP endpoint without running a local server or keeping your computer online.
-- **Stay in control.** Authorization can be revoked, and different MCP URLs can have separate tools and network scopes.
 
 The result is a practical way to give AI agents onchain capabilities without handing over ownership of your wallet.
 
@@ -54,7 +53,6 @@ Policies are assigned through Privy during authorization. Privy evaluates the ap
 
 - Privy rejects condition-less `signTransaction` rules, so signing permissions mirror instruction-level rules across both signing methods.
 - Address-based recipient conditions can fail with transactions using Address Lookup Tables. The current policies use program and amount conditions instead.
-- Circle Gateway deposits require the Circle Gateway program to be included in the Tight allowlist before they can pass under that policy.
 
 ## Quick start
 
@@ -63,8 +61,6 @@ Get your first AI agent connected in a few steps.
 ### 1. Create your wallet
 
 Visit the Wayfind Web3 application (https://web3.wayfind.click) and sign in using your email.
-
-A Privy embedded Solana wallet is created automatically. You don't need to configure a separate wallet or install a browser extension.
 
 ### 2. Enable tools
 
@@ -267,17 +263,6 @@ npx tsx scripts/privy-tests/run.ts
 ```
 
 The TypeScript check should be clean, accounting for pre-existing `$amplify/env` stubs.
-
-## Verification
-
-Use these checks to verify the main application flows.
-
-1. Create a fresh MCP URL and confirm that `tools/list` returns zero tools.
-2. Enable tools in `/app/tools` and confirm that they appear in the MCP tool list.
-3. Authorize a devnet wallet under Spending caps.
-4. Verify that a small SOL transfer succeeds and an over-cap transaction is denied with a policy error.
-5. Confirm that read-only operations such as `get_balances`, `get_history`, and `okx_get_quote` work without signing authorization.
-6. Deploy backend changes and allow approximately one minute for propagation. Transient `403 {"Message":null}` responses can occur while a new revision rolls out.
 
 ## Repository structure
 

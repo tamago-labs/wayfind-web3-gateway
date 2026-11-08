@@ -1,6 +1,6 @@
-import { Connection, PublicKey } from "@solana/web3.js";
 import type { ToolDef } from "../../types";
-import { getSwapQuote, resolveMainnetMint } from "../../lib/okx";
+import { getSwapQuote, probeOkxDecimals, resolveMainnetMint } from "../../lib/okx";
+import { findDecimals } from "../../lib/tokens";
 
 export const getQuoteTool: ToolDef = {
   name: "okx_get_quote",
@@ -27,17 +27,19 @@ export const getQuoteTool: ToolDef = {
       return { text: "'from'/'to' must be symbols and 'amount' a number greater than 0.", isError: true };
     }
     try {
-      // Same display→base conversion swap_tokens uses (mainnet mint decimals).
+      // Same display→base conversion swap_tokens uses. Decimals come from the
+      // registry first (no RPC — public endpoints block getParsedAccountInfo
+      // and native SOL has no mint account anyway); unknown-to-registry tokens
+      // fall back to an OKX probe quote.
       const fromMint = resolveMainnetMint(args.from);
       if (!fromMint) return { text: `Unknown token '${args.from}' on mainnet.`, isError: true };
-      const connection = new Connection(
-        process.env.SOLANA_MAINNET_RPC ?? "https://api.mainnet-beta.solana.com",
-        "confirmed",
-      );
-      const mintInfo = await connection.getParsedAccountInfo(new PublicKey(fromMint)).catch(() => null);
-      const decimals = (
-        mintInfo?.value?.data as unknown as { parsed?: { info?: { decimals?: number } } }
-      )?.parsed?.info?.decimals;
+      if (!resolveMainnetMint(args.to)) return { text: `Unknown token '${args.to}' on mainnet.`, isError: true };
+      const probed =
+        findDecimals(args.from, "mainnet") === null ||
+        findDecimals(args.to, "mainnet") === null
+          ? await probeOkxDecimals(args.from, args.to)
+          : { from: null as number | null, to: null as number | null };
+      const decimals = findDecimals(args.from, "mainnet") ?? probed.from;
       if (typeof decimals !== "number") {
         return { text: `Could not read mint decimals for ${args.from}.`, isError: true };
       }

@@ -1,12 +1,8 @@
-import { Connection, PublicKey } from "@solana/web3.js";
 import type { ToolDef } from "../../types";
-import { getSwapInstruction, resolveMainnetMint } from "../../lib/okx";
+import { getSwapInstruction, probeOkxDecimals, resolveMainnetMint } from "../../lib/okx";
+import { findDecimals } from "../../lib/tokens";
 import { signAndSend } from "../../lib/privy";
 import { base58ToBase64 } from "../../lib/tx";
-
-function rpcUrl(): string {
-  return process.env.SOLANA_MAINNET_RPC ?? "https://api.mainnet-beta.solana.com";
-}
 
 export const swapTokensTool: ToolDef = {
   name: "okx_swap_tokens",
@@ -46,23 +42,23 @@ export const swapTokensTool: ToolDef = {
     if (args.amount <= 0) {
       return { text: "Amount must be greater than 0.", isError: true };
     }
-    const connection = new Connection(rpcUrl(), "confirmed");
     try {
-      // Decimals come from the mint account (same source send_tokens uses).
+      // Registry-first decimals (no RPC — see get_quote). Unknown-to-registry
+      // tokens fall back to an OKX probe quote.
       const fromMint = resolveMainnetMint(args.from);
       if (!fromMint) return { text: `Unknown token '${args.from}' on mainnet.`, isError: true };
       const toMint = resolveMainnetMint(args.to);
       if (!toMint) return { text: `Unknown token '${args.to}' on mainnet.`, isError: true };
-      const readDecimals = async (mint: string) => {
-        const info = await connection.getParsedAccountInfo(new PublicKey(mint)).catch(() => null);
-        return (info?.value?.data as unknown as { parsed?: { info?: { decimals?: number } } })?.parsed?.info
-          ?.decimals;
-      };
-      const decimals = await readDecimals(fromMint);
+      const probed =
+        findDecimals(args.from, "mainnet") === null ||
+        findDecimals(args.to, "mainnet") === null
+          ? await probeOkxDecimals(args.from, args.to)
+          : { from: null as number | null, to: null as number | null };
+      const decimals = findDecimals(args.from, "mainnet") ?? probed.from;
       if (typeof decimals !== "number") {
         return { text: `Could not read mint decimals for ${args.from}.`, isError: true };
       }
-      const toDecimals = await readDecimals(toMint);
+      const toDecimals = findDecimals(args.to, "mainnet") ?? probed.to;
       if (typeof toDecimals !== "number") {
         return { text: `Could not read mint decimals for ${args.to}.`, isError: true };
       }

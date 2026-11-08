@@ -118,10 +118,14 @@ export const sendTokensTool: ToolDef = {
 
     // SPL path. Source is the real holding account (faucets often fund
     // non-ATA accounts); destination is the ATA, created if missing.
+    // Decimals are registry-first (no RPC); getTokenSupply — which works on
+    // restricted public RPCs — covers tokens the registry build missed.
     const mint = new PublicKey(meta.mint);
-    const mintInfo = await connection.getParsedAccountInfo(mint).catch(() => null);
-    const decimals = (mintInfo?.value?.data as unknown as { parsed?: { info?: { decimals?: number } } })
-      ?.parsed?.info?.decimals;
+    let decimals = typeof meta.decimals === "number" ? meta.decimals : null;
+    if (decimals === null) {
+      const supply = await connection.getTokenSupply(mint).catch(() => null);
+      if (typeof supply?.value?.decimals === "number") decimals = supply.value.decimals;
+    }
     if (typeof decimals !== "number") {
       return { text: `Could not read mint decimals for ${meta.symbol}.`, isError: true };
     }

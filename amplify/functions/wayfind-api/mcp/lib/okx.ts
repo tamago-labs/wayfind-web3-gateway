@@ -54,6 +54,36 @@ export function resolveMainnetMint(symbol: string): string | null {
   return findBySymbol(symbol, "mainnet")?.mint ?? null;
 }
 
+// Probe-quote decimals cache: symbol-pair → { from, to }. A probe is a real
+// /quote call with amount "1" (1 base unit) whose only purpose is reading
+// fromToken.decimal / toToken.decimal. Avoids any RPC dependency, so it works
+// on restricted public endpoints and for tokens the registry missed (GMEX).
+const probeCache = new Map<string, { from: number | null; to: number | null }>();
+
+export async function probeOkxDecimals(
+  fromSymbol: string,
+  toSymbol: string,
+): Promise<{ from: number | null; to: number | null }> {
+  const key = `${fromSymbol.toUpperCase()}>${toSymbol.toUpperCase()}`;
+  const hit = probeCache.get(key);
+  if (hit) return hit;
+  const out = { from: null as number | null, to: null as number | null };
+  try {
+    const q = (await getSwapQuote({ fromSymbol, toSymbol, amount: "1" })) as {
+      fromToken?: { decimal?: string };
+      toToken?: { decimal?: string };
+    };
+    const f = Number(q.fromToken?.decimal);
+    const t = Number(q.toToken?.decimal);
+    if (Number.isInteger(f) && f >= 0) out.from = f;
+    if (Number.isInteger(t) && t >= 0) out.to = t;
+    if (out.from !== null || out.to !== null) probeCache.set(key, out);
+  } catch {
+    // probe failed — caller reports the user-facing error
+  }
+  return out;
+}
+
 /** GET /api/v6/dex/aggregator/quote — returns the raw quote object. */
 export async function getSwapQuote(p: SwapQuoteParams): Promise<unknown> {
   const fromTokenAddress = p.fromTokenAddress ?? (p.fromSymbol ? resolveMainnetMint(p.fromSymbol) : null);
