@@ -14,6 +14,16 @@ Connect Grok Bot, Claude, Cursor, or your Wayfind Cloud Bots. They can check bal
 - **Enforceable policies** — spending caps (≤1 SOL / ≤5 USDC), a tight 8-program allowlist, or the default no-export policy. Revoke anytime.
 - **Works out of the box** — Grok Bot, Claude, Cursor, VS Code, any MCP client, and Bots in Wayfind Cloud (Connectors → Web3).
 
+## Demo
+
+2-minute walkthrough — a bot checking balances and quoting a swap through the gateway:
+
+https://www.youtube.com/watch?v=4MxQVFTu8Yc
+
+Live proof — a transaction the bot executed on Solana mainnet:
+
+https://solscan.io/tx/edmihfeCYFVjMqTNkZPxMA91FDLfa9ggtDUFfBDhtFMb56zaoeS6KqVDo9CDHZ6yKZzyQ9ZKbtTGD8EMAHv4iYr
+
 ## Why Wayfind Web3
 
 AI agents are becoming increasingly capable of handling real work, but interacting with blockchains introduces a different challenge: how do you let an agent execute transactions without giving it unrestricted control of your wallet?
