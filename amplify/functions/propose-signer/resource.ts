@@ -10,5 +10,7 @@ export const proposeSignerFunction = defineFunction({
     PRIVY_SIGNER_NAME: process.env.PRIVY_SIGNER_NAME ?? "",
     PRIVY_SIGNER_ID: process.env.PRIVY_SIGNER_ID ?? "",
     PRIVY_DEFAULT_POLICY_ID: process.env.PRIVY_DEFAULT_POLICY_ID ?? "",
+    PRIVY_SPENDING_CAPS_POLICY_ID: process.env.PRIVY_SPENDING_CAPS_POLICY_ID ?? "",
+    PRIVY_TIGHT_POLICY_ID: process.env.PRIVY_TIGHT_POLICY_ID ?? "",
   },
 });

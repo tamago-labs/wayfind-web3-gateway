@@ -19,6 +19,55 @@ function short(value: string) {
   return value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-4)}` : value;
 }
 
+// Policy options. Ids are not secrets — Privy returns them on every
+// authorized wallet — so matching them client-side is safe. Anything else is
+// the default no-export policy.
+const POLICY_OPTIONS = [
+  {
+    key: 'default',
+    label: 'Default',
+    blurb: 'No key exports',
+    ids: [] as string[],
+  },
+  {
+    key: 'caps',
+    label: 'Spending caps',
+    blurb: '≤1 SOL / ≤5 USDC',
+    ids: ['us7w1phwzpr2c3vsw3mgeb8r'],
+  },
+  {
+    key: 'tight',
+    label: 'Tight allowlist',
+    blurb: '8 programs only',
+    ids: ['sma14e3q3s2fdr9172k2csej'],
+  },
+] as const;
+
+type PolicyKey = (typeof POLICY_OPTIONS)[number]['key'];
+
+// Capability rows: [default, caps, tight]. Order must match POLICY_OPTIONS.
+const ROWS: { label: string; values: [string, string, string] }[] = [
+  { label: 'Key export', values: ['✕ Blocked', '✕ Blocked', '✕ Blocked'] },
+  { label: 'SOL per transaction', values: ['Unlimited', '≤ 1 SOL', 'Unlimited'] },
+  { label: 'USDC per transaction', values: ['Unlimited', '≤ 5 USDC', 'Unlimited'] },
+  {
+    label: 'Programs',
+    values: ['Any program', 'System · Token · Jupiter · OKX', '8 allowlisted only'],
+  },
+  { label: 'Swaps', values: ['Allowed', 'Jupiter / OKX', 'Jupiter / OKX'] },
+  {
+    label: 'Gateway deposits',
+    values: ['Allowed', 'Allowed', 'Needs program approval'],
+  },
+];
+
+function currentPolicyKey(policyIds: string[]): PolicyKey | null {
+  if (policyIds.length === 0) return null;
+  const id = policyIds[0];
+  const match = POLICY_OPTIONS.find((o) => (o.ids as readonly string[]).includes(id));
+  return match ? match.key : 'default';
+}
+
 export default function AuthorizationPage() {
   const { user } = usePrivy();
   const { wallets } = useWallets();
@@ -27,6 +76,7 @@ export default function AuthorizationPage() {
   const [statusByAddress, setStatusByAddress] = useState<Record<string, WalletStatus>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   // Signers only attach to embedded wallets — external ones can't delegate.
   const solanaWallets = useMemo(() => {
@@ -88,22 +138,35 @@ export default function AuthorizationPage() {
     void refresh();
   }, [refresh]);
 
-  const authorize = async (address: string) => {
+  const activeAddress = selected ?? solanaWallets[0]?.address ?? null;
+  const activeStatus = activeAddress ? statusByAddress[activeAddress] : undefined;
+  const activeKey = activeStatus?.delegated
+    ? currentPolicyKey(activeStatus.policyIds)
+    : null;
+
+  const attach = async (address: string, key: PolicyKey) => {
+    const proposed = await dataClient.mutations.proposeSigner({
+      walletAddress: address,
+      policyKey: key,
+    });
+    const result = proposed.data as unknown as { signerId?: string; policyId?: string } | null;
+    if (!result?.signerId) throw new Error('Signer is not configured yet');
+    await addSigners({
+      address,
+      signers: [
+        {
+          signerId: result.signerId,
+          ...(result.policyId ? { policyIds: [result.policyId] } : {}),
+        },
+      ],
+    });
+  };
+
+  const authorize = async (address: string, key: PolicyKey) => {
     setError(null);
     setBusy(address);
     try {
-      const proposed = await dataClient.mutations.proposeSigner({ walletAddress: address });
-      const result = proposed.data as unknown as { signerId?: string; policyId?: string } | null;
-      if (!result?.signerId) throw new Error('Signer is not configured yet');
-      await addSigners({
-        address,
-        signers: [
-          {
-            signerId: result.signerId,
-            ...(result.policyId ? { policyIds: [result.policyId] } : {}),
-          },
-        ],
-      });
+      await attach(address, key);
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Authorization failed');
@@ -129,17 +192,30 @@ export default function AuthorizationPage() {
     }
   };
 
+  const switchPolicy = async (address: string, key: PolicyKey) => {
+    const status = statusByAddress[address];
+    setError(null);
+    setBusy(address);
+    try {
+      await removeSigners({ address });
+      if (status) {
+        await dataClient.mutations.revokeSigner({ walletId: status.walletId });
+      }
+      await attach(address, key);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Policy switch failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
-    <section className="mx-auto max-w-2xl space-y-4 pt-2">
+    <section className="mx-auto max-w-3xl space-y-4 pt-2">
       <div className="rounded-3xl border border-navy/10 bg-white p-6 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
-          Delegation · Devnet
-        </p>
-        <p className="mt-2 text-lg font-bold">Your Bots act only with permission</p>
+        <p className="mt-2 text-lg font-bold">Choose what your Bots are allowed to do</p>
         <p className="mt-2 text-sm text-heroslate">
-          Authorizing adds Wayfind as a signer on your wallet under the default policy. You stay
-          the owner and can revoke at any time. Refresh any time: this page reads live state from
-          Privy, not a copy.
+          Pick a policy and authorize — you stay the owner, revoke anytime.
         </p>
       </div>
 
@@ -158,49 +234,134 @@ export default function AuthorizationPage() {
           </p>
         </div>
       ) : (
-        solanaWallets.map((w) => {
-          const status = statusByAddress[w.address];
-          return (
-            <div
-              key={w.address}
-              className="rounded-3xl border border-navy/10 bg-white p-6 shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/solana.png" alt="Solana" className="h-7 w-7 rounded-full" />
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-sm font-semibold" title={w.address}>
-                    {short(w.address)}
-                  </p>
-                  <p className="text-xs font-semibold text-heroslate">
-                    {!status
-                      ? 'Checking status…'
-                      : status.delegated
-                        ? `Authorized · policy ${status.policyIds[0] ? short(status.policyIds[0]) : 'default'}`
-                        : 'Not authorized'}
-                  </p>
-                </div>
-                {status?.delegated ? (
+        <>
+          {solanaWallets.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {solanaWallets.map((w) => {
+                const s = statusByAddress[w.address];
+                const isActive = w.address === activeAddress;
+                return (
                   <button
-                    onClick={() => revoke(w.address)}
-                    disabled={busy === w.address}
-                    className="ml-auto rounded-full border-2 border-navy px-4 py-1.5 text-xs font-bold hover:bg-navy hover:text-white transition-colors disabled:opacity-50"
+                    key={w.address}
+                    onClick={() => setSelected(w.address)}
+                    className={`rounded-2xl border px-4 py-2 text-left transition-colors ${
+                      isActive
+                        ? 'border-cta bg-white shadow-sm'
+                        : 'border-navy/10 bg-white/60 hover:border-navy/30'
+                    }`}
                   >
-                    {busy === w.address ? 'Working…' : 'Revoke'}
+                    <p className="font-mono text-xs font-bold">{short(w.address)}</p>
+                    <p
+                      className={`text-[11px] font-semibold ${
+                        s?.delegated ? 'text-emerald-600' : 'text-heroslate'
+                      }`}
+                    >
+                      {!s
+                        ? 'Checking…'
+                        : s.delegated
+                          ? `Authorized · ${POLICY_OPTIONS.find((o) => o.key === currentPolicyKey(s.policyIds))?.label ?? 'Default'}`
+                          : 'Not authorized'}
+                    </p>
                   </button>
-                ) : (
-                  <button
-                    onClick={() => authorize(w.address)}
-                    disabled={busy === w.address || !status}
-                    className="ml-auto rounded-full bg-cta px-5 py-2 text-xs font-bold text-white hover:bg-ctahover transition-colors disabled:opacity-50"
-                  >
-                    {busy === w.address ? 'Working…' : 'Authorize Wayfind'}
-                  </button>
-                )}
-              </div>
+                );
+              })}
             </div>
-          );
-        })
+          )}
+
+          {activeAddress && (
+            <div className="overflow-hidden rounded-3xl border border-navy/10 bg-white shadow-sm">
+              <div className="border-b border-navy/10 p-4">
+                <p className="font-mono text-sm font-semibold" title={activeAddress}>
+                  {activeAddress}
+                </p>
+                <p className="text-xs font-semibold text-heroslate">
+                  {!activeStatus
+                    ? 'Checking status…'
+                    : activeStatus.delegated
+                      ? `Authorized · ${POLICY_OPTIONS.find((o) => o.key === activeKey)?.label ?? 'Default'}`
+                      : 'Not authorized'}
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr className="border-b border-navy/10 text-left text-xs uppercase tracking-wider text-heroslate">
+                      <th className="p-4 font-bold">Capability</th>
+                      {POLICY_OPTIONS.map((o) => (
+                        <th key={o.key} className="p-4 font-bold">
+                          {o.label}
+                          <span className="block text-[11px] font-semibold normal-case text-heroslate">
+                            {o.blurb}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-navy/5">
+                    {ROWS.map((row) => (
+                      <tr key={row.label}>
+                        <td className="p-4 font-semibold">{row.label}</td>
+                        {row.values.map((v, i) => (
+                          <td
+                            key={i}
+                            className={`p-4 ${v.startsWith('✕') ? 'font-bold text-red-500' : v.startsWith('≤') ? 'font-bold' : 'text-heroslate'}`}
+                          >
+                            {v}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    <tr>
+                      <td className="p-4"></td>
+                      {POLICY_OPTIONS.map((o) => {
+                        const isCurrent = activeStatus?.delegated && activeKey === o.key;
+                        return (
+                          <td key={o.key} className="p-4">
+                            {isCurrent ? (
+                              <span className="inline-block rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-700">
+                                Current policy
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() =>
+                                  activeStatus?.delegated
+                                    ? switchPolicy(activeAddress, o.key)
+                                    : authorize(activeAddress, o.key)
+                                }
+                                disabled={busy === activeAddress}
+                                className="rounded-full bg-cta px-4 py-2 text-xs font-bold text-white hover:bg-ctahover transition-colors disabled:opacity-50"
+                              >
+                                {busy === activeAddress
+                                  ? 'Working…'
+                                  : activeStatus?.delegated
+                                    ? `Switch to ${o.label}`
+                                    : `Authorize · ${o.label}`}
+                              </button>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              {activeStatus?.delegated && (
+                <div className="border-t border-navy/10 p-4 text-center">
+                  <button
+                    onClick={() => revoke(activeAddress)}
+                    disabled={busy === activeAddress}
+                    className="text-xs font-bold text-heroslate underline hover:text-navy disabled:opacity-50"
+                  >
+                    Revoke Wayfind access
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="text-center text-xs text-heroslate">
+            To switch policy, use Switch — it revokes and re-authorizes in one step.
+          </p>
+        </>
       )}
     </section>
   );

@@ -57,7 +57,7 @@ const schema = a.schema({
 
   proposeSigner: a
     .mutation()
-    .arguments({ walletAddress: a.string().required() })
+    .arguments({ walletAddress: a.string().required(), policyKey: a.string() })
     .returns(a.ref("ProposeSignerResult"))
     .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(proposeSignerFunction)),
