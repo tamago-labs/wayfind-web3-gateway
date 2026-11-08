@@ -63,12 +63,21 @@ export const swapTokensTool: ToolDef = {
         return { text: `Could not read mint decimals for ${args.to}.`, isError: true };
       }
       const baseUnits = Math.round(args.amount * 10 ** decimals).toString();
+      // Dust fix: small SOL buys fail simulation (wrap-temp + output ATA
+      // rent peaks above balance, worse with split routes like
+      // Raydium 70% + Orca / ZeroFi + Stabble). Under 0.01 SOL force
+      // single-route, explicit slippage, zero fee.
+      const isDust = args.from.toUpperCase() === "SOL" && args.amount < 0.01;
       const instruction = await getSwapInstruction({
         fromSymbol: args.from,
         toSymbol: args.to,
         amount: baseUnits,
         userWalletAddress: ctx.walletAddress,
-        slippagePercent: typeof args.slippagePercent === "string" ? args.slippagePercent : "0.5",
+        slippagePercent: typeof args.slippagePercent === "string" ? args.slippagePercent : isDust ? "0.3" : "0.5",
+        autoSlippage: isDust ? "false" : "true",
+        feePercent: "0",
+        swapReceiverAddress: ctx.walletAddress,
+        ...(isDust ? { denySplitRoute: "true" } : {}),
       });
       if (!instruction.base58Transaction) {
         return { text: "OKX returned no swap transaction.", isError: true };
