@@ -58,7 +58,7 @@ export default function Hero() {
           Your AI Bots can now transact onchain.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-heroslate">
-          Connect any Bot to your wallet through one remote MCP server. You keep ownership. Spending limits, recipient allowlists, and time bounds are enforced by Privy before anything is signed.
+          One remote MCP server connects Grok Bot, Claude, or Cursor to your Solana wallet. Spending caps and program allowlists are enforced by Privy before anything is signed.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
           <Link href="/app" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">

@@ -34,7 +34,7 @@ function Steps({ items }: { items: string[] }) {
 }
 
 export default function McpClientTabs({ url }: { url: string | null }) {
-  const [tab, setTab] = useState<'claude' | 'vscode' | 'any'>('claude');
+  const [tab, setTab] = useState<'wayfind' | 'claude' | 'vscode' | 'any'>('wayfind');
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (text: string, label: string) => {
@@ -47,6 +47,7 @@ export default function McpClientTabs({ url }: { url: string | null }) {
   const displayUrl = url ? maskUrl(url) : PLACEHOLDER_URL;
   const displayJson = mcpJsonSnippet(displayUrl);
   const tabs = [
+    { id: 'wayfind', label: 'Wayfind Cloud' },
     { id: 'claude', label: 'Claude' },
     { id: 'vscode', label: 'VS Code' },
     { id: 'any', label: 'Any Other MCP Client' },
@@ -82,6 +83,31 @@ export default function McpClientTabs({ url }: { url: string | null }) {
       )}
 
       <div className="mt-4">
+        {tab === 'wayfind' && (
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <p className="text-sm text-heroslate">
+                Give your Wayfind Cloud Bots on-chain access — connect this MCP server as a
+                connector, then ask any Bot to use your wallet tools.
+              </p>
+              <p className="mt-3 text-sm font-bold text-navy">Setting up in Wayfind Cloud</p>
+              <Steps
+                items={[
+                  'Open wayfind.click and sign in',
+                  'Click Connectors in the bottom-left corner',
+                  'Under the Web3 category, choose the Web3 connector',
+                  'Paste the Integration URL on the right into the URL field',
+                  'Save, then ask your Bot to check a balance to confirm it’s live',
+                ]}
+              />
+            </div>
+            <div>
+              <p className="mb-2 text-sm font-bold text-navy">Integration URL (paste directly)</p>
+              <CodeBlock code={displayUrl} onCopy={() => url && copy(url, 'wayfind-url')} copied={copied === 'wayfind-url'} />
+            </div>
+          </div>
+        )}
+
         {tab === 'claude' && (
           <div className="grid gap-6 md:grid-cols-2">
             <div>

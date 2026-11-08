@@ -269,7 +269,7 @@ export default function ToolsConsole() {
                               <div className="min-w-0 flex-1">
                                 <p className="font-mono font-semibold">{name}</p>
                                 {meta.description && (
-                                  <p className="truncate text-xs text-heroslate">
+                                  <p className="truncate text-xs text-heroslate" title={meta.description}>
                                     {meta.description}
                                   </p>
                                 )}
