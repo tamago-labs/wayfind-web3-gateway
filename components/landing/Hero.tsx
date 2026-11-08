@@ -55,10 +55,10 @@ export default function Hero() {
         </div>
 
         <h1 className="font-brico text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl">
-          Your Bots can now transact onchain.
+          Your AI Bots can now transact onchain.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-heroslate">
-          Give your AI Bots onchain access via MCP. Transfer limits, allowlists, and time bounds are enforced before every transaction.
+          Connect any Bot to your wallet through one remote MCP server. You keep ownership. Spending limits, recipient allowlists, and time bounds are enforced by Privy before anything is signed.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
           <Link href="/app" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">

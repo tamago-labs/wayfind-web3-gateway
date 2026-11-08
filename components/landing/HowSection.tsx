@@ -2,17 +2,17 @@ const STEPS = [
   {
     n: '01',
     title: 'Add tools',
-    text: 'Pick the services your bots may call — balances, swaps, USDC finance.',
+    text: 'Choose which tools your Bot can use (balances, swaps, USDC transfers).',
   },
   {
     n: '02',
     title: 'Connect',
-    text: 'Generate one MCP server URL and paste it into your favourite app.',
+    text: 'Generate one MCP server URL and paste it into any MCP client.',
   },
   {
     n: '03',
     title: 'Fund & authorize',
-    text: 'Fund the bot wallet and set signer limits. You stay in control.',
+    text: 'Fund the bot wallet and choose a policy for it. You stay in control.',
   },
 ];
 

@@ -13,14 +13,14 @@ const cards: { color: MascotColor; shape: MascotShape; title: string; body: stri
   {
     color: 'lagoon',
     shape: 'circle',
-    title: 'Privy Delegated Signing',
-    body: 'Use email to get a bot wallet. Your bot gets a restricted signer under policies you approve. Revoke anytime.',
+    title: 'You own the wallet',
+    body: 'Sign in with email to get a Privy wallet. Wayfind is added as a restricted signer under policies you approve.',
   },
   {
     color: 'moss',
     shape: 'pebble',
     title: 'Every model. Every agent.',
-    body: 'Compatible with Claude, Grok Bot, and others right out of the box. Works with Wayfind Cloud and any MCP client.',
+    body: 'Works right out of the box with Grok Bot, Claude, Cursor, and any MCP client, including Bots in Wayfind Cloud.',
   },
 ];
 

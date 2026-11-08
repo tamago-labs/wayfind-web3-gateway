@@ -16,7 +16,7 @@ export interface CatalogCategory {
 export const CATALOG: CatalogCategory[] = [
   {
     id: 'wallet',
-    label: 'System',
+    label: 'Wallet Operations',
     icon: 'https://pbs.twimg.com/profile_images/2106330567872786432/hJXHNtGj_400x400.jpg',
     tools: [
       { name: 'get_balances', description: 'Read SOL plus every token balance, including stocks.' },
@@ -28,7 +28,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: 'okx',
-    label: 'OKX DEX Swap',
+    label: 'OKX DEX Swaps',
     icon: 'https://bitpinas.com/wp-content/uploads/2025/05/OKX-Wallet.webp',
     tools: [
       { name: 'okx_get_quote', description: 'Read-only swap quote (Solana mainnet).' },
@@ -37,7 +37,7 @@ export const CATALOG: CatalogCategory[] = [
   },
   {
     id: 'usdc',
-    label: 'USDC finance',
+    label: 'Stablecoin Finance',
     icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSKJOU1hlUwQHEaxxTrT0wu40kDcvhQKMr4w6ga1m8gaA&s=10',
     tools: [
       { name: 'usdc_unified_balance', description: 'Total USDC + per-chain breakdown. Read-only.' },

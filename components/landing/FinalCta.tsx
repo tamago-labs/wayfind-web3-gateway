@@ -21,7 +21,7 @@ export default function FinalCta() {
         </div>
         <h2 className="text-4xl font-extrabold tracking-tight sm:text-5xl">Put your bots on-chain today.</h2>
         <p className="mx-auto mt-4 max-w-md text-lg text-white/70">
-          20+ tools ready for on-chain work, running 24/7. Free to start.
+          20+ tools ready for on-chain work, running 24/7. Free to start — connect your first client in under a minute.
         </p>
         <Link
           href="/app"

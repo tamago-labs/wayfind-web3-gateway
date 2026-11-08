@@ -30,9 +30,9 @@ const allTools: ToolDef[] = [
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
-  { id: "wallet", label: "System" },
-  { id: "okx", label: "OKX DEX Swap" },
-  { id: "usdc", label: "USDC finance" },
+  { id: "wallet", label: "Wallet Operations" },
+  { id: "okx", label: "OKX DEX Swaps" },
+  { id: "usdc", label: "Stablecoin Finance" },
 ];
 
 export function listTools(ctx: ToolContext): ToolDef[] {
