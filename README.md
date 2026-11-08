@@ -1,12 +1,18 @@
 # Wayfind Web3 Gateway for AI Agents
 
-**Give your AI agents permission-controlled access to your onchain wallet.**
+**Give always-on agents like Grok Bot on-chain access via a remote MCP server with scoped tools and Privy delegated signing.**
 
 Wayfind Web3 connects AI agents to your Solana wallet through a remote MCP server. Instead of sharing private keys or asking an agent to manage a wallet, you give it access to a set of blockchain tools with permissions you control.
 
 Connect Grok Bot, Claude, Cursor, or your Wayfind Cloud Bots. They can check balances, send tokens, execute DEX swaps, and manage stablecoin operations — while Privy handles transaction signing under policies you authorize.
 
-**Your wallet. Your policies. Your AI agents.**
+## Highlights
+
+- **One remote MCP server** — a single Streamable-HTTP endpoint per wallet and scope. No local machine, no private keys on any device.
+- **You own the wallet** — sign in with email to get a Privy embedded wallet. Wayfind is added as a restricted signer under policies you approve.
+- **10+ tools, 3 categories** — Wallet Operations, OKX DEX Swaps, Stablecoin Finance. Enable only what each Bot may call.
+- **Enforceable policies** — spending caps (≤1 SOL / ≤5 USDC), a tight 8-program allowlist, or the default no-export policy. Revoke anytime.
+- **Works out of the box** — Grok Bot, Claude, Cursor, VS Code, any MCP client, and Bots in Wayfind Cloud (Connectors → Web3).
 
 ## Why Wayfind Web3
 
@@ -24,50 +30,6 @@ Wayfind Web3 provides a separate permission layer between AI agents and your wal
 
 The result is a practical way to give AI agents onchain capabilities without handing over ownership of your wallet.
 
-## What can your AI agents do?
-
-Wayfind Web3 currently provides more than 10 MCP tools across three categories.
-
-### Wallet operations
-
-Give agents visibility into your wallet and the ability to perform basic token operations.
-
-- Check wallet addresses and network information.
-- Read SOL and token balances, including tokenized stocks.
-- Review recent transaction history.
-- Look up individual transactions.
-- Send SOL and SPL tokens by symbol, subject to your authorization policy.
-
-### DEX swaps
-
-Let agents interact with decentralized exchanges through OKX DEX.
-
-- Retrieve token swap quotes.
-- Execute token swaps through OKX DEX.
-- Apply transaction policies before signing.
-
-### Stablecoin finance
-
-Connect agents to Circle's USDC unified balance infrastructure.
-
-- Check total USDC balances across supported chains.
-- Discover available destination chains.
-- Deposit USDC into a unified balance.
-- Spend USDC, including supported cross-chain operations.
-
-These capabilities allow an AI agent to move beyond simply answering questions about blockchain data. It can perform real onchain operations when the required tools and permissions are enabled.
-
-## How it works
-
-Wayfind Web3 separates the agent, the transaction gateway, and the wallet signer.
-
-1. **Connect an agent.** Generate a remote MCP URL and add it to Grok Bot, Claude, Cursor, or another compatible MCP client.
-2. **Choose its capabilities.** Enable the tools that the agent is allowed to use. Every new MCP URL starts with zero tools enabled.
-3. **Authorize signing.** Choose a Privy policy and authorize Wayfind as a restricted signer for your embedded wallet.
-4. **Let the agent work.** The agent calls MCP tools. Wayfind builds transactions server-side and submits them for signing under your authorized policy.
-
-The agent only interacts with the MCP interface. It never receives your private key or communicates directly with Privy.
-
 ## Security and permissions
 
 Security is built around separating wallet ownership, agent access, and transaction signing.
@@ -78,21 +40,7 @@ Sign in with email to create a Privy embedded Solana wallet. You own and control
 
 The agent never receives wallet credentials or private-key material.
 
-### Transaction policies
-
-Choose the level of transaction control that fits your workflow.
-
-| Policy | What it enforces |
-|---|---|
-| Default | Blocks private-key export while allowing other signing operations |
-| Spending caps | Limits transactions to ≤1 SOL and ≤5 USDC per transaction; restricts swaps to Jupiter or OKX |
-| Tight allowlist | Restricts transactions to 8 known programs, including System, Token, Associated Token, Memo, Compute Budget, Jupiter, and OKX |
-
-Policies are assigned through Privy during authorization. Privy evaluates the applicable conditions when signing is requested.
-
-**Important:** The Default policy is an export-protection policy, not a general transaction restriction. Use Spending caps or Tight allowlist when you need additional transaction controls.
-
-### Additional security boundaries
+### Security boundaries
 
 - **No agent-side signing:** Agents invoke MCP tools, while the backend constructs transactions and uses its restricted platform signer.
 - **No private-key export:** Private-key export is denied under every policy.
@@ -100,7 +48,9 @@ Policies are assigned through Privy during authorization. Privy evaluates the ap
 - **Scope isolation:** Network scope is stamped when an MCP URL is issued. A devnet URL cannot be switched to mainnet simply by changing the application setting.
 - **Revocable authorization:** You can revoke Wayfind's signer authorization when it is no longer needed.
 
-### Policy implementation notes
+### Transaction policies
+
+Policies are assigned through Privy during authorization. Privy evaluates the applicable conditions when signing is requested.
 
 - Privy rejects condition-less `signTransaction` rules, so signing permissions mirror instruction-level rules across both signing methods.
 - Address-based recipient conditions can fail with transactions using Address Lookup Tables. The current policies use program and amount conditions instead.
@@ -112,7 +62,7 @@ Get your first AI agent connected in a few steps.
 
 ### 1. Create your wallet
 
-Visit the Wayfind Web3 application and sign in using your email.
+Visit the Wayfind Web3 application (https://web3.wayfind.click) and sign in using your email.
 
 A Privy embedded Solana wallet is created automatically. You don't need to configure a separate wallet or install a browser extension.
 
@@ -124,9 +74,7 @@ Open **Tools** in the application:
 
 Choose which capabilities you want to expose to your AI agents.
 
-For example, you can enable read-only tools first and add transaction capabilities when you're ready.
-
-Each MCP URL maintains its own tool configuration. New URLs start with no tools enabled.
+For example, the network scope defaults to Solana devnet — enable all tools to test freely, and when you're familiar, switch the scope to mainnet and regenerate the MCP endpoint.
 
 ### 3. Connect your AI agent
 
@@ -165,11 +113,23 @@ Read-only operations can work without signing authorization. Transaction operati
 
 ### 5. Start using onchain tools
 
-Ask your AI agent to perform an operation, such as:
+Follow the instructions on the `/app/connect` page to configure any MCP client.
+The recommended clients to start with are Claude.ai and Wayfind Cloud.
 
-> Check my SOL and USDC balances.
+#### 5.1 Claude.ai
 
-Or:
+Open Settings → Customize → Add custom connector, then paste the MCP URL.
+On first connect, Claude lists all enabled tools — make sure the ones you need
+are enabled in `/app/tools` first. Then try:
+
+> Check my wallet address and SOL balance.
+
+#### 5.2 Wayfind Cloud
+
+Log in at wayfind.click, then open the Connectors panel at the bottom-left corner.
+Go to the Web3 category and choose a Web3 connector — it prompts for the MCP URL.
+After a few seconds all Bots can use the tools, and each Bot can include or
+exclude this MCP server separately in its own settings. Then try:
 
 > Get a quote for swapping 0.1 SOL into USDC.
 
