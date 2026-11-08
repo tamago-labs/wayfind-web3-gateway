@@ -121,7 +121,10 @@ export default function AuthorizationPage() {
         try {
           const res = await dataClient.queries.walletState({ walletId });
           const state = res.data as unknown as WalletStatus | null;
-          return state ? ([w.address, state] as const) : null;
+          // wallet-state returns Privy's `id` field — stamp our own walletId
+          // here so revoke() always has a real id (status.walletId used to be
+          // undefined, which made every revoke fail validation).
+          return state ? ([w.address, { ...state, walletId }] as const) : null;
         } catch {
           return null;
         }
@@ -177,12 +180,13 @@ export default function AuthorizationPage() {
 
   const revoke = async (address: string) => {
     const status = statusByAddress[address];
+    const walletId = status?.walletId ?? idByAddress[address];
     setError(null);
     setBusy(address);
     try {
       await removeSigners({ address });
-      if (status) {
-        await dataClient.mutations.revokeSigner({ walletId: status.walletId });
+      if (walletId) {
+        await dataClient.mutations.revokeSigner({ walletId });
       }
       await refresh();
     } catch (e) {

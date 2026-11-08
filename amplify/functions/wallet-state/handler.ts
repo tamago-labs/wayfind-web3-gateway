@@ -7,7 +7,7 @@ interface PrivyWallet {
   id: string;
   address: string;
   chain_type: string;
-  additional_signers?: Array<{ signer_id?: string }>;
+  additional_signers?: Array<{ signer_id?: string; override_policy_ids?: string[] }>;
   policy_ids?: string[];
 }
 
@@ -30,12 +30,19 @@ export const handler: Handler = async (event) => {
   const signerIds = (wallet.additional_signers ?? [])
     .map((s) => s.signer_id)
     .filter((id): id is string => !!id);
+  // Privy stores the policy we attach at authorize time on the signer's
+  // override_policy_ids — the wallet-level policy_ids stays empty. Surface
+  // the effective policy (signer overrides first) so the UI names it right.
+  const overrideIds = (wallet.additional_signers ?? []).flatMap(
+    (s) => s.override_policy_ids ?? [],
+  );
+  const policyIds = Array.from(new Set([...overrideIds, ...(wallet.policy_ids ?? [])]));
   return {
     id: wallet.id,
     address: wallet.address,
     chainType: wallet.chain_type,
     delegated: signerIds.length > 0,
     signerIds,
-    policyIds: wallet.policy_ids ?? [],
+    policyIds,
   };
 };
