@@ -102,10 +102,6 @@ export async function getSwapQuote(p: SwapQuoteParams): Promise<unknown> {
 export interface SwapInstructionParams extends SwapQuoteParams {
   userWalletAddress: string;
   slippagePercent?: string;
-  autoSlippage?: string;
-  feePercent?: string;
-  swapReceiverAddress?: string;
-  denySplitRoute?: string;
 }
 
 /** Returns { base58Transaction, routerResult, minReceiveAmount }. Live OKX
@@ -129,15 +125,8 @@ export async function getSwapInstruction(p: SwapInstructionParams): Promise<{
     fromTokenAddress,
     toTokenAddress,
     userWalletAddress: p.userWalletAddress,
-    // Dust path (<0.01 SOL): explicit slippage, no auto-slippage, no split.
-    // Normal path: keep previous behavior (autoSlippage true).
     slippagePercent: p.slippagePercent ?? "0.5",
-    autoSlippage: p.autoSlippage ?? "true",
-    ...(p.feePercent ? { feePercent: p.feePercent } : {}),
-    ...(p.swapReceiverAddress ? { swapReceiverAddress: p.swapReceiverAddress } : {}),
-    // OKX name varies by version (denySplitRoute); if the API rejects it,
-    // callers should retry without it — extra hop accounts cost rent.
-    ...(p.denySplitRoute ? { denySplitRoute: p.denySplitRoute } : {}),
+    autoSlippage: "true",
   })) as {
     base58Transaction?: string;
     routerResult?: unknown;

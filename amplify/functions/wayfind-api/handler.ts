@@ -63,10 +63,6 @@ export const handler = async (
         amount: qs.amount ?? "",
         userWalletAddress: qs.userWalletAddress ?? "",
         slippagePercent: qs.slippagePercent,
-        autoSlippage: qs.autoSlippage,
-        feePercent: qs.feePercent,
-        swapReceiverAddress: qs.swapReceiverAddress,
-        denySplitRoute: qs.denySplitRoute,
       });
       return json(200, { data });
     } catch (e) {
