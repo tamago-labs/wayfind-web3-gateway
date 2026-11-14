@@ -20,6 +20,15 @@ import { mezoMusdSystemOverviewTool } from "./mezo/musd/system_overview";
 import { mezoMusdInterestRateTool } from "./mezo/musd/interest_rate";
 import { mezoMusdProtocolConstantsTool } from "./mezo/musd/protocol_constants";
 import { mezoMusdMaxBorrowingCapacityTool } from "./mezo/musd/max_borrowing_capacity";
+import { mezoMusdOpenTroveTool } from "./mezo/musd/open_trove";
+import { mezoMusdAddCollateralTool } from "./mezo/musd/add_collateral";
+import { mezoMusdWithdrawCollateralTool } from "./mezo/musd/withdraw_collateral";
+import { mezoMusdRepayTool } from "./mezo/musd/repay";
+import { mezoMusdCloseTroveTool } from "./mezo/musd/close_trove";
+import { mezoMusdRedeemTool } from "./mezo/musd/redeem";
+import { mezoMusdPoolStatusTool } from "./mezo/musd/pool_status";
+import { mezoMusdStakeTool } from "./mezo/musd/stake";
+import { mezoMusdUnstakeTool } from "./mezo/musd/unstake";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -47,6 +56,15 @@ const allTools: ToolDef[] = [
   mezoMusdInterestRateTool,
   mezoMusdProtocolConstantsTool,
   mezoMusdMaxBorrowingCapacityTool,
+  mezoMusdOpenTroveTool,
+  mezoMusdAddCollateralTool,
+  mezoMusdWithdrawCollateralTool,
+  mezoMusdRepayTool,
+  mezoMusdCloseTroveTool,
+  mezoMusdRedeemTool,
+  mezoMusdPoolStatusTool,
+  mezoMusdStakeTool,
+  mezoMusdUnstakeTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [

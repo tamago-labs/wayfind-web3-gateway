@@ -183,7 +183,7 @@ export async function getMezoTransaction(
 export async function evmSendTransaction(
   evmWalletId: string,
   network: MezoNetwork,
-  tx: { to: string; valueWei?: bigint; data?: string },
+  tx: { to: string; valueWei?: bigint; data?: string; gasLimit?: bigint },
 ): Promise<string> {
   const transaction: Record<string, unknown> = {
     to: tx.to,
@@ -191,6 +191,7 @@ export async function evmSendTransaction(
   };
   if (tx.valueWei !== undefined) transaction.value = toHexWei(tx.valueWei);
   if (tx.data !== undefined) transaction.data = tx.data;
+  if (tx.gasLimit !== undefined) transaction.gasLimit = toHexWei(tx.gasLimit);
   const sent = await privySignedRpc<{ data?: { hash?: string } }>(evmWalletId, {
     method: "eth_sendTransaction",
     caip2: mezoCaip2(network),

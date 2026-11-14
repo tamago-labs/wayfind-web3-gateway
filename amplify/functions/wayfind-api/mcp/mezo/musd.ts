@@ -1,9 +1,9 @@
 // MUSD read layer — viem only, no ethers. Reads run against the Mezo RPC;
-// writes (later phase) go through evmSendTransaction in lib/evm.ts on the
-// user's embedded wallet. Mainnet contract addresses are not published yet —
-// queries fail closed on mainnet until they are added below.
-import { createPublicClient, formatUnits, http, parseAbi } from "viem";
-import { mezoChainId, mezoRpcUrl, type MezoNetwork } from "../lib/evm";
+// writes (below) build calldata with viem and send via evmSendTransaction in
+// lib/evm.ts on the user's embedded wallet. Mainnet contract addresses are
+// not published yet — queries fail closed on mainnet until they are added.
+import { createPublicClient, encodeFunctionData, formatUnits, http, parseAbi } from "viem";
+import { evmSendTransaction, mezoChainId, mezoRpcUrl, type MezoNetwork } from "../lib/evm";
 
 const TESTNET_CONTRACTS = {
   borrowerOperations: "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
@@ -55,6 +55,45 @@ const BORROWER_OPS_ABI = parseAbi([
 const INTEREST_RATE_ABI = parseAbi([
   "function interestRate() view returns (uint256)",
   "function MAX_INTEREST_RATE() view returns (uint256)",
+]);
+
+const ERC20_ABI = parseAbi([
+  "function balanceOf(address account) view returns (uint256)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+]);
+
+const SORTED_TROVES_ABI = parseAbi([
+  "function findInsertPosition(uint256 _NICR, address _prevId, address _nextId) view returns (address, address)",
+]);
+
+const HINT_HELPERS_ABI = parseAbi([
+  "function getApproxHint(uint256 _NICR, uint256 _numTrials, uint256 _randomSeed) view returns (address hintAddress, uint256 diff, uint256 latestRandomSeed)",
+  "function getRedemptionHints(uint256 _MUSDAmount, uint256 _price, uint256 _maxIterations) view returns (address firstRedeemHint, uint256 partialRedemptionHintNICR, uint256 MUSDLot)",
+]);
+
+const REDEEM_ABI = parseAbi([
+  "function redeemCollateral(uint256 _MUSDAmount, address _firstRedeemHint, address _upperPartialRedemptionHint, address _lowerPartialRedemptionHint, uint256 _partialRedemptionHintNICR, uint256 _maxIterations)",
+]);
+
+const WRITE_ABI = parseAbi([
+  "function openTrove(uint256 _maxFeePercentage, uint256 _MUSDAmount, address _upperHint, address _lowerHint) payable",
+  "function addColl(address _upperHint, address _lowerHint) payable",
+  "function withdrawColl(uint256 _collWithdrawal, address _upperHint, address _lowerHint)",
+  "function repayMUSD(uint256 _MUSDamount, address _upperHint, address _lowerHint)",
+  "function closeTrove()",
+]);
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
+
+const STABILITY_POOL_ABI = parseAbi([
+  "function getCompoundedMUSDDeposit(address _depositor) view returns (uint256)",
+  "function getDepositorCollateralGain(address _depositor) view returns (uint256)",
+  "function getTotalMUSDDeposits() view returns (uint256)",
+  "function getCollateralBalance() view returns (uint256)",
+  "function P() view returns (uint256)",
+  "function provideToSP(uint256 _amount)",
+  "function withdrawFromSP(uint256 _amount)",
 ]);
 
 const LIQUIDATION_DEPOSIT_WEI = 200000000000000000000n;
@@ -231,5 +270,332 @@ export async function fetchMaxBorrowingCapacity(borrower: string, network: MezoN
     maxNetDebtMUSD: formatUnits(capacity, 18),
     maxTotalDebtMUSD: formatUnits(capacity + LIQUIDATION_DEPOSIT_WEI, 18),
     liquidationDepositMUSD: "200",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Write layer. Every write is a Privy eth_sendTransaction from the user's
+// embedded EVM wallet under the ethereum policy — the Lambda never sees keys.
+// Calldata is built with viem; value/approve sequencing mirrors the MUSD dApp.
+// ---------------------------------------------------------------------------
+
+async function getHints(
+  c: ReturnType<typeof client>,
+  C: ReturnType<typeof musdContracts>,
+  nicr: bigint,
+): Promise<{ upperHint: Address; lowerHint: Address }> {
+  if (nicr > 0n) {
+    const seed = BigInt(Math.floor(Math.random() * 1_000_000));
+    const [approxHint] = (await c.readContract({
+      address: C.hintHelpers as Address,
+      abi: HINT_HELPERS_ABI,
+      functionName: "getApproxHint",
+      args: [nicr, 15n, seed],
+    })) as unknown as [Address, bigint, bigint];
+    const [upper, lower] = (await c.readContract({
+      address: C.sortedTroves as Address,
+      abi: SORTED_TROVES_ABI,
+      functionName: "findInsertPosition",
+      args: [nicr, approxHint, approxHint],
+    })) as unknown as [Address, Address];
+    return { upperHint: upper, lowerHint: lower };
+  }
+  return { upperHint: ZERO_ADDRESS, lowerHint: ZERO_ADDRESS };
+}
+
+/** Poll for a receipt. Returns true if confirmed successful, false if failed. Throws on timeout. */
+export async function waitForConfirmation(
+  network: MezoNetwork,
+  hash: string,
+  timeoutMs = 120_000,
+): Promise<boolean> {
+  const c = client(network);
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const receipt = await c.getTransactionReceipt({ hash: hash as `0x${string}` }).catch(() => null);
+    if (receipt) return receipt.status === "success";
+    if (Date.now() > deadline) throw new Error(`Timed out waiting for ${hash} confirmation`);
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+}
+
+/** Approve any ERC-20 spender if allowance is short. Returns approve hash or null. */
+export async function ensureTokenApproval(
+  evmWalletId: string,
+  owner: string,
+  token: string,
+  spender: string,
+  amountWei: bigint,
+  network: MezoNetwork,
+): Promise<string | null> {
+  const c = client(network);
+  const allowed = await c.readContract({
+    address: token as Address,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: [owner as Address, spender as Address],
+  });
+  if (allowed >= amountWei) return null;
+  const data = encodeFunctionData({
+    abi: ERC20_ABI,
+    functionName: "approve",
+    args: [spender as Address, amountWei],
+  });
+  const hash = await evmSendTransaction(evmWalletId, network, { to: token, data });
+  const ok = await waitForConfirmation(network, hash);
+  if (!ok) throw new Error(`Approve reverted: ${hash}`);
+  return hash;
+}
+
+export interface OpenTroveResult {
+  txHash: string;
+  collateralBTC: string;
+  musdBorrowed: string;
+  borrowingFeeMUSD: string;
+  feePercent: string;
+  liquidationDepositMUSD: string;
+  totalDebtMUSD: string;
+}
+
+/**
+ * Open a trove. Borrows the RAW musdWei — the contract adds the borrowing fee
+ * and the 200 MUSD gas compensation itself (the old code pre-added the fee,
+ * so users paid it twice). Requires min 1800 MUSD and ICR >= MCR.
+ */
+export async function executeOpenTrove(
+  evmWalletId: string,
+  owner: string,
+  musdWei: bigint,
+  collateralWei: bigint,
+  maxFeePercent: number,
+  network: MezoNetwork,
+): Promise<OpenTroveResult> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const MIN_DEBT = 1_800_000_000_000_000_000_000n;
+  if (musdWei < MIN_DEBT) throw new Error("Minimum borrow is 1800 MUSD.");
+  const fee = (await c.readContract({
+    address: C.borrowerOperations as Address,
+    abi: BORROWER_OPS_ABI,
+    functionName: "getBorrowingFee",
+    args: [musdWei],
+  })) as bigint;
+  const feePct = musdWei > 0n ? (Number(fee) * 100) / Number(musdWei) : 0;
+  if (feePct > maxFeePercent) {
+    throw new Error(`Borrowing fee ${feePct.toFixed(2)}% exceeds max ${maxFeePercent}%. Aborted — no transaction sent.`);
+  }
+  const totalDebt = musdWei + fee + LIQUIDATION_DEPOSIT_WEI;
+  const price = await fetchPrice(c);
+  const mcr = (await c.readContract({
+    address: C.troveManager as Address,
+    abi: TROVE_MANAGER_ABI,
+    functionName: "MCR",
+  })) as bigint;
+  // ICR = coll * price / totalDebt, 1e18-based.
+  if ((collateralWei * price) / totalDebt < mcr) {
+    throw new Error("Collateral too low — ICR would be under 110%. Add more BTC or borrow less. No transaction sent.");
+  }
+  const nicr = (collateralWei * 10n ** 20n) / totalDebt;
+  const { upperHint, lowerHint } = await getHints(c, C, nicr);
+  const maxFeeWei = BigInt(Math.floor(maxFeePercent * 1e16));
+  const data = encodeFunctionData({
+    abi: WRITE_ABI,
+    functionName: "openTrove",
+    args: [maxFeeWei, musdWei, upperHint, lowerHint],
+  });
+  const txHash = await evmSendTransaction(evmWalletId, network, {
+    to: C.borrowerOperations,
+    valueWei: collateralWei,
+    data,
+  });
+  return {
+    txHash,
+    collateralBTC: formatUnits(collateralWei, 18),
+    musdBorrowed: formatUnits(musdWei, 18),
+    borrowingFeeMUSD: formatUnits(fee, 18),
+    feePercent: `${feePct.toFixed(2)}%`,
+    liquidationDepositMUSD: "200",
+    totalDebtMUSD: formatUnits(totalDebt, 18),
+  };
+}
+
+export async function executeAddCollateral(
+  evmWalletId: string,
+  collateralWei: bigint,
+  network: MezoNetwork,
+): Promise<string> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const { upperHint, lowerHint } = await getHints(c, C, 0n);
+  const data = encodeFunctionData({ abi: WRITE_ABI, functionName: "addColl", args: [upperHint, lowerHint] });
+  return evmSendTransaction(evmWalletId, network, { to: C.borrowerOperations, valueWei: collateralWei, data });
+}
+
+export async function executeWithdrawCollateral(
+  evmWalletId: string,
+  collateralWei: bigint,
+  network: MezoNetwork,
+): Promise<string> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const { upperHint, lowerHint } = await getHints(c, C, 0n);
+  const data = encodeFunctionData({
+    abi: WRITE_ABI,
+    functionName: "withdrawColl",
+    args: [collateralWei, upperHint, lowerHint],
+  });
+  return evmSendTransaction(evmWalletId, network, { to: C.borrowerOperations, data });
+}
+
+export async function executeRepay(
+  evmWalletId: string,
+  owner: string,
+  musdWei: bigint,
+  network: MezoNetwork,
+): Promise<{ approveHash: string | null; repayHash: string }> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const approveHash = await ensureTokenApproval(evmWalletId, owner, C.musdToken, C.borrowerOperations, musdWei, network);
+  const { upperHint, lowerHint } = await getHints(c, C, 0n);
+  const data = encodeFunctionData({
+    abi: WRITE_ABI,
+    functionName: "repayMUSD",
+    args: [musdWei, upperHint, lowerHint],
+  });
+  const repayHash = await evmSendTransaction(evmWalletId, network, { to: C.borrowerOperations, data });
+  return { approveHash, repayHash };
+}
+
+export async function executeCloseTrove(evmWalletId: string, owner: string, network: MezoNetwork): Promise<string> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const tm = C.troveManager as Address;
+  const [debt, status] = await Promise.all([
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveDebt", args: [owner as Address] }),
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveStatus", args: [owner as Address] }),
+  ]);
+  if (Number(status) !== 1) throw new Error("No open trove to close.");
+  if (debt > 0n) {
+    throw new Error(
+      `Trove still owes ${formatUnits(debt, 18)} MUSD — repay first (mezo_musd_repay), then close. No transaction sent.`,
+    );
+  }
+  const data = encodeFunctionData({ abi: WRITE_ABI, functionName: "closeTrove" });
+  return evmSendTransaction(evmWalletId, network, { to: C.borrowerOperations, data });
+}
+
+export interface PoolStatus {
+  depositor: string;
+  stakedMUSD: string;
+  collateralGainBTC: string;
+  totalPoolDepositsMUSD: string;
+  poolShare: string;
+  borrowingInterestRate: string;
+}
+
+export async function fetchPoolStatus(depositor: string, network: MezoNetwork): Promise<PoolStatus> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const sp = C.stabilityPool as Address;
+  const who = depositor as Address;
+  const [compounded, gain, total, rate] = await Promise.all([
+    c.readContract({ address: sp, abi: STABILITY_POOL_ABI, functionName: "getCompoundedMUSDDeposit", args: [who] }),
+    c.readContract({ address: sp, abi: STABILITY_POOL_ABI, functionName: "getDepositorCollateralGain", args: [who] }),
+    c.readContract({ address: sp, abi: STABILITY_POOL_ABI, functionName: "getTotalMUSDDeposits" }),
+    c.readContract({ address: C.interestRateManager as Address, abi: INTEREST_RATE_ABI, functionName: "interestRate" }),
+  ]);
+  const share = total > 0n ? ((Number(compounded) * 100) / Number(total)).toFixed(4) : "0";
+  return {
+    depositor,
+    stakedMUSD: formatUnits(compounded, 18),
+    collateralGainBTC: formatUnits(gain, 18),
+    totalPoolDepositsMUSD: formatUnits(total, 18),
+    poolShare: `${share}%`,
+    borrowingInterestRate: `${(Number(rate) / 100).toFixed(2)}%`,
+  };
+}
+
+export async function executeStake(
+  evmWalletId: string,
+  owner: string,
+  musdWei: bigint,
+  network: MezoNetwork,
+): Promise<{ approveHash: string | null; stakeHash: string }> {
+  const C = musdContracts(network);
+  const approveHash = await ensureTokenApproval(evmWalletId, owner, C.musdToken, C.stabilityPool, musdWei, network);
+  const data = encodeFunctionData({
+    abi: STABILITY_POOL_ABI,
+    functionName: "provideToSP",
+    args: [musdWei],
+  });
+  const stakeHash = await evmSendTransaction(evmWalletId, network, { to: C.stabilityPool, data });
+  return { approveHash, stakeHash };
+}
+
+export async function executeUnstake(
+  evmWalletId: string,
+  musdWei: bigint,
+  network: MezoNetwork,
+): Promise<string> {
+  const C = musdContracts(network);
+  const data = encodeFunctionData({
+    abi: STABILITY_POOL_ABI,
+    functionName: "withdrawFromSP",
+    args: [musdWei],
+  });
+  return evmSendTransaction(evmWalletId, network, { to: C.stabilityPool, data });
+}
+
+export interface RedeemResult {
+  txHash: string;
+  requestedMUSD: string;
+  redeemedMUSD: string;
+  btcReceivedEstimate: string;
+}
+
+/**
+ * Redeem MUSD for BTC at the $1 peg. No approve step — TroveManager burns
+ * caller MUSD directly. Uses REAL hints from getRedemptionHints (zero hints
+ * always revert) and the truncated lot (partial redemptions only fill what
+ * the first trove can provide). 6-arg signature per the deployed contract.
+ */
+export async function executeRedeem(
+  evmWalletId: string,
+  musdWei: bigint,
+  network: MezoNetwork,
+): Promise<RedeemResult> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const price = await fetchPrice(c);
+  const [firstHint, partialNICR, musdLot] = (await c.readContract({
+    address: C.hintHelpers as Address,
+    abi: HINT_HELPERS_ABI,
+    functionName: "getRedemptionHints",
+    args: [musdWei, price, 0n],
+  })) as unknown as [Address, bigint, bigint];
+  if (firstHint === ZERO_ADDRESS || musdLot === 0n) {
+    throw new Error("No redeemable troves for this amount right now — TCR may be too low or troves too small. No transaction sent.");
+  }
+  const [upper, lower] = (await c.readContract({
+    address: C.sortedTroves as Address,
+    abi: SORTED_TROVES_ABI,
+    functionName: "findInsertPosition",
+    args: [partialNICR, firstHint, firstHint],
+  })) as unknown as [Address, Address];
+  const data = encodeFunctionData({
+    abi: REDEEM_ABI,
+    functionName: "redeemCollateral",
+    args: [musdLot, firstHint, upper, lower, partialNICR, 0n],
+  });
+  const txHash = await evmSendTransaction(evmWalletId, network, {
+    to: C.troveManager,
+    data,
+    gasLimit: 5_000_000n,
+  });
+  return {
+    txHash,
+    requestedMUSD: formatUnits(musdWei, 18),
+    redeemedMUSD: formatUnits(musdLot, 18),
+    btcReceivedEstimate: formatUnits((musdLot * 10n ** 18n) / price, 18),
   };
 }
