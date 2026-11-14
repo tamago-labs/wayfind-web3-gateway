@@ -191,7 +191,8 @@ export async function evmSendTransaction(
   };
   if (tx.valueWei !== undefined) transaction.value = toHexWei(tx.valueWei);
   if (tx.data !== undefined) transaction.data = tx.data;
-  if (tx.gasLimit !== undefined) transaction.gasLimit = toHexWei(tx.gasLimit);
+  // Privy REST uses snake_case here ("gasLimit" is rejected as unrecognized).
+  if (tx.gasLimit !== undefined) transaction.gas_limit = toHexWei(tx.gasLimit);
   const sent = await privySignedRpc<{ data?: { hash?: string } }>(evmWalletId, {
     method: "eth_sendTransaction",
     caip2: mezoCaip2(network),
