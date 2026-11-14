@@ -6,7 +6,7 @@ export const mezoMusdCloseTroveTool: ToolDef = {
   name: "mezo_musd_close_trove",
   category: "mezo",
   description:
-    "Close your trove and reclaim collateral. Requires zero debt — repay first with mezo_musd_repay. Policy-enforced.",
+    "Close your trove and reclaim collateral. Works once debt is down to the 200 MUSD gas deposit (it settles itself, refunded on close) — repay first with mezo_musd_repay. Policy-enforced.",
   inputSchema: {
     type: "object",
     properties: {},

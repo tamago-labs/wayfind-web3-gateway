@@ -6,7 +6,7 @@ export const mezoMusdOpenTroveTool: ToolDef = {
   name: "mezo_musd_open_trove",
   category: "mezo",
   description:
-    "Open a MUSD trove: deposit BTC collateral and borrow MUSD (min 1800). Fee quoted first and capped; contract adds fee + 200 MUSD deposit.",
+    "Open a MUSD trove: deposit BTC collateral and borrow MUSD (min 1800). Fee quoted first and capped; contract adds fee + a 200 MUSD gas deposit (returned when you close).",
   inputSchema: {
     type: "object",
     properties: {

@@ -602,9 +602,11 @@ export async function executeCloseTrove(evmWalletId: string, owner: string, netw
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveStatus", args: [owner as Address] }),
   ]);
   if (Number(status) !== 1) throw new Error("No open trove to close.");
-  if (debt > 0n) {
+  // The 200 MUSD gas deposit settles itself on close (docs: returned on close),
+  // so closing works once everything ABOVE the deposit is repaid.
+  if (debt > LIQUIDATION_DEPOSIT_WEI) {
     throw new Error(
-      `Trove still owes ${formatUnits(debt, 18)} MUSD — repay first (mezo_musd_repay), then close. No transaction sent.`,
+      `Trove still owes ${formatUnits(debt, 18)} MUSD — repay down to the 200 MUSD deposit, then close (the deposit settles itself). No transaction sent.`,
     );
   }
   const data = encodeFunctionData({ abi: WRITE_ABI, functionName: "closeTrove" });
