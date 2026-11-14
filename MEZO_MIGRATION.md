@@ -37,9 +37,10 @@ Legend: ✅ tested live on testnet · 🧪 tested locally via tsx · ⬜ pending
 - [x] `mezo_musd_stake` / `mezo_musd_unstake` (approve + provideToSP/withdrawFromSP — code done, NOT live-fired: needs MUSD balance)
 - [ ] E2E stake/unstake on testnet
 
-## Strategy + monitoring — pending
-- [ ] `mezo_musd_check_icr` (ICR vs MCR/CCR, distance-to-liquidation)
-- [ ] Mint-and-stake strategy (open trove → stake MUSD, pre-checks, sequential confirms)
+## Strategy + monitoring — code done, check verified live
+- [x] `mezo_musd_check_icr` — live 🧪 (ICR vs MCR, TCR/recovery, % drop to liquidation, top-up/repay math for 150%)
+- [x] `mezo_musd_mint_and_stake` — open → confirmed → approve → stake, sequential confirms + TCR note (code done, NOT live-fired: needs funded wallet)
+- [ ] E2E mint-and-stake on testnet
 - [ ] Scheduler note: true auto top-up needs a cron Lambda (follow-up, out of MCP scope)
 
 ## Mainnet + tests — pending

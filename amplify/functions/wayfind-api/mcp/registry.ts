@@ -29,6 +29,8 @@ import { mezoMusdRedeemTool } from "./mezo/musd/redeem";
 import { mezoMusdPoolStatusTool } from "./mezo/musd/pool_status";
 import { mezoMusdStakeTool } from "./mezo/musd/stake";
 import { mezoMusdUnstakeTool } from "./mezo/musd/unstake";
+import { mezoMusdCheckIcrTool } from "./mezo/musd/check_icr";
+import { mezoMusdMintAndStakeTool } from "./mezo/musd/mint_and_stake";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -65,6 +67,8 @@ const allTools: ToolDef[] = [
   mezoMusdPoolStatusTool,
   mezoMusdStakeTool,
   mezoMusdUnstakeTool,
+  mezoMusdCheckIcrTool,
+  mezoMusdMintAndStakeTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [

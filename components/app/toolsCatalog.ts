@@ -70,6 +70,8 @@ export const CATALOG: CatalogCategory[] = [
       { name: 'mezo_musd_pool_status', description: 'Stability Pool position and gains. Read-only.' },
       { name: 'mezo_musd_stake', description: 'Stake MUSD to earn BTC gains. Policy-enforced.' },
       { name: 'mezo_musd_unstake', description: 'Withdraw staked MUSD. Policy-enforced.' },
+      { name: 'mezo_musd_check_icr', description: 'Trove health, liquidation distance, top-up math. Read-only.' },
+      { name: 'mezo_musd_mint_and_stake', description: 'Borrow MUSD and stake in one flow. Policy-enforced.' },
     ],
   },
 ];

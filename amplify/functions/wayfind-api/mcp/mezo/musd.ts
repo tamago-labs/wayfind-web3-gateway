@@ -546,6 +546,122 @@ export async function executeUnstake(
   return evmSendTransaction(evmWalletId, network, { to: C.stabilityPool, data });
 }
 
+export interface IcrCheck {
+  borrower: string;
+  hasTrove: boolean;
+  icr: string;
+  mcr: string;
+  tcr: string;
+  recoveryMode: boolean;
+  priceDropToLiquidation: string;
+  topUpFor150ICR_BTC: string;
+  repayFor150ICR_MUSD: string;
+  note: string;
+}
+
+/** ICR health + exactly what top-up or repay reaches a safer 150% ICR. Read-only. */
+export async function checkIcr(borrower: string, network: MezoNetwork): Promise<IcrCheck> {
+  const C = musdContracts(network);
+  const c = client(network);
+  const tm = C.troveManager as Address;
+  const who = borrower as Address;
+  const price = await fetchPrice(c);
+  const [coll, debt, mcr, tcr] = await Promise.all([
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveColl", args: [who] }),
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveDebt", args: [who] }),
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "MCR" }),
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTCR", args: [price] }),
+  ]);
+  if (coll === 0n || debt === 0n) {
+    return {
+      borrower, hasTrove: false, icr: "N/A",
+      mcr: `${((Number(mcr) / 1e18) * 100).toFixed(2)}%`,
+      tcr: tcr > 0n ? `${((Number(tcr) / 1e18) * 100).toFixed(2)}%` : "N/A",
+      recoveryMode: tcr < 1_500_000_000_000_000_000n,
+      priceDropToLiquidation: "N/A", topUpFor150ICR_BTC: "0", repayFor150ICR_MUSD: "0",
+      note: "No open trove.",
+    };
+  }
+  const icrWei = (coll * price) / debt; // 1e18-based
+  const targetWei = 1_500_000_000_000_000_000n;
+  const dropPct = icrWei > mcr ? ((Number(icrWei - mcr) * 100) / Number(icrWei)).toFixed(2) : "0";
+  // collNeeded = 1.5 * debt / price; topUp = max(0, needed - coll)
+  const needColl = (targetWei * debt) / price;
+  const topUp = needColl > coll ? needColl - coll : 0n;
+  // repay = debt - coll*price/1.5
+  const targetDebt = (coll * price) / targetWei;
+  const repay = targetDebt < debt ? debt - targetDebt : 0n;
+  return {
+    borrower,
+    hasTrove: true,
+    icr: `${(Number(icrWei) / 1e18).toFixed(2)}%`,
+    mcr: `${((Number(mcr) / 1e18) * 100).toFixed(2)}%`,
+    tcr: `${((Number(tcr) / 1e18) * 100).toFixed(2)}%`,
+    recoveryMode: tcr < 1_500_000_000_000_000_000n,
+    priceDropToLiquidation: `${dropPct}%`,
+    topUpFor150ICR_BTC: formatUnits(topUp, 18),
+    repayFor150ICR_MUSD: formatUnits(repay, 18),
+    note: topUp === 0n && repay === 0n
+      ? "Already at or above 150% ICR."
+      : "Top up BTC or repay MUSD to reach 150% ICR. Auto top-up needs a scheduler — this tool only reports the amounts.",
+  };
+}
+
+export interface MintAndStakeResult {
+  openTxHash: string;
+  approveHash: string | null;
+  stakeTxHash: string;
+  musdBorrowed: string;
+  musdStaked: string;
+  borrowingFeeMUSD: string;
+  totalDebtMUSD: string;
+  poolShareAfter: string;
+  tcr: string;
+  recoveryMode: boolean;
+}
+
+/**
+ * Mint-and-stake in one flow: open trove → wait → approve SP → stake.
+ * Each step confirms before the next starts. Borrows the raw amount (fee
+ * charged once by the contract) and stakes up to the borrowed amount.
+ */
+export async function executeMintAndStake(
+  evmWalletId: string,
+  owner: string,
+  collateralWei: bigint,
+  musdWei: bigint,
+  stakeWei: bigint,
+  maxFeePercent: number,
+  network: MezoNetwork,
+): Promise<MintAndStakeResult> {
+  if (stakeWei > musdWei) throw new Error("Stake amount cannot exceed the borrowed amount. No transaction sent.");
+  const open = await executeOpenTrove(evmWalletId, owner, musdWei, collateralWei, maxFeePercent, network);
+  const openOk = await waitForConfirmation(network, open.txHash);
+  if (!openOk) throw new Error(`Open-trove tx reverted: ${open.txHash}. Stopping before staking.`);
+  const stake = await executeStake(evmWalletId, owner, stakeWei, network);
+  const stakeOk = await waitForConfirmation(network, stake.stakeHash);
+  if (!stakeOk) throw new Error(`Stake tx reverted: ${stake.stakeHash}. Trove is open — MUSD is in your wallet.`);
+  const c = client(network);
+  const tm = musdContracts(network).troveManager as Address;
+  const price = await fetchPrice(c);
+  const [pool, tcr] = await Promise.all([
+    fetchPoolStatus(owner, network),
+    c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTCR", args: [price] }),
+  ]);
+  return {
+    openTxHash: open.txHash,
+    approveHash: stake.approveHash,
+    stakeTxHash: stake.stakeHash,
+    musdBorrowed: open.musdBorrowed,
+    musdStaked: formatUnits(stakeWei, 18),
+    borrowingFeeMUSD: open.borrowingFeeMUSD,
+    totalDebtMUSD: open.totalDebtMUSD,
+    poolShareAfter: pool.poolShare,
+    tcr: tcr > 0n ? `${((Number(tcr) / 1e18) * 100).toFixed(2)}%` : "N/A",
+    recoveryMode: tcr < 1_500_000_000_000_000_000n,
+  };
+}
+
 export interface RedeemResult {
   txHash: string;
   requestedMUSD: string;
