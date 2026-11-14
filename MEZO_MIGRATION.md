@@ -43,8 +43,18 @@ Legend: ✅ tested live on testnet · 🧪 tested locally via tsx · ⬜ pending
 - [ ] E2E mint-and-stake on testnet
 - [ ] Scheduler note: true auto top-up needs a cron Lambda (follow-up, out of MCP scope)
 
-## Mainnet + tests — pending
-- [ ] 🚫 Mainnet MUSD contract addresses (upstream `mainnet: {}` empty — pull from `mezo-org/musd` / explorer)
+## Swaps — quote verified live on all 3 testnet pools, execution path proven
+- [x] `mezo_swap_quote` — live 🧪 (100 MUSD→0.001278 BTC / →80.95 mUSDC; 1 mUSDC→1.23 MUSD)
+- [x] `mezo_swap_tokens` — code done; path proven live with dev key (approve + swapExactTokensForTokens, block 16775833). Direct pool.swap REVERTS — always route via Router
+- [x] Token registry: mUSDC + mUSDT both nets (testnet addrs read off pool token0/token1, 6 dec; mainnet from docs, 6 dec verified on-chain)
+- [x] BTC works as swap OUTPUT only (no approve path for native gas input)
+- [x] Found + fixed: viem parseAbi needs `(address,address,bool,address)[]`, not `tuple(...)[]`
+- [ ] E2E gateway swap (needs MUSD in the Privy wallet)
+- [ ] CL pools phase 2 (needs pool address + Slipstream quoting)
+
+## Mainnet + tests — contracts wired, verified live
+- [x] Mainnet MUSD contract addresses — pulled from local `wayfind-mezo/musd` deployments (chain 31612), verified live: TCR 3996%, 16.95 BTC, 4 troves, no recovery
+- [x] Found + fixed while wiring: `fetchPrice` hardcoded the testnet PriceFeed (mainnet reads would have hit a dead address)
 - [ ] Mainnet RPC + policy already wired (Boar primary, `eip155:31612`, EVM default policy `d23bu5…fgn`)
 - [ ] User-run mainnet dust test per tool class
 - [ ] `node:test` + `tsx` unit tests for pure helpers (format/parse/encode/ICR math)

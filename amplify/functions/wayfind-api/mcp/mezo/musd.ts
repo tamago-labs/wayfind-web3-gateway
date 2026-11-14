@@ -1,9 +1,9 @@
 // MUSD read layer — viem only, no ethers. Reads run against the Mezo RPC;
 // writes (below) build calldata with viem and send via evmSendTransaction in
-// lib/evm.ts on the user's embedded wallet. Mainnet contract addresses are
-// not published yet — queries fail closed on mainnet until they are added.
+// lib/evm.ts on the user's embedded wallet. Contract addresses verified
+// against mezo-org/musd deployments (matsnet chain 31611, mainnet 31612).
 import { createPublicClient, encodeFunctionData, formatUnits, http, parseAbi } from "viem";
-import { evmSendTransaction, mezoChainId, mezoRpcUrl, type MezoNetwork } from "../lib/evm";
+import { evmSendTransaction, findMezoBySymbol, mezoChainId, mezoRpcUrl, type MezoNetwork, type MezoTokenMeta } from "../lib/evm";
 
 const TESTNET_CONTRACTS = {
   borrowerOperations: "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
@@ -17,11 +17,20 @@ const TESTNET_CONTRACTS = {
   priceFeed: "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
 } as const;
 
+const MAINNET_CONTRACTS = {
+  borrowerOperations: "0x44b1bac67dDA612a41a58AAf779143B181dEe031",
+  troveManager: "0x94AfB503dBca74aC3E4929BACEeDfCe19B93c193",
+  musdToken: "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+  stabilityPool: "0x73245Eff485aB3AAc1158B3c4d8f4b23797B0e32",
+  sortedTroves: "0x8C5DB4C62BF29c1C4564390d10c20a47E0b2749f",
+  hintHelpers: "0xD267b3bE2514375A075fd03C3D9CBa6b95317DC3",
+  interestRateManager: "0x4a453700d157717Fe02fB62E7700ED7845048285",
+  activePool: "0x3012C2fE1240e3754E5C200A0946bb0E07474876",
+  priceFeed: "0xc5aC5A8892230E0A3e1c473881A2de7353fFcA88",
+} as const;
+
 function musdContracts(network: MezoNetwork) {
-  if (network !== "testnet") {
-    throw new Error("MUSD contract addresses are only configured for Mezo testnet so far.");
-  }
-  return TESTNET_CONTRACTS;
+  return network === "mainnet" ? MAINNET_CONTRACTS : TESTNET_CONTRACTS;
 }
 
 const PRICE_FEED_ABI = parseAbi(["function fetchPrice() view returns (uint256)"]);
@@ -96,6 +105,119 @@ const STABILITY_POOL_ABI = parseAbi([
   "function withdrawFromSP(uint256 _amount)",
 ]);
 
+// Aerodrome-style pool router (NOT the UniversalRouter — plain
+// swapExactTokensForTokens, verified live on testnet).
+const SWAP_ROUTER_ABI = parseAbi([
+  "function getAmountsOut(uint256 amountIn, (address,address,bool,address)[] routes) view returns (uint256[] memory amounts)",
+  "function swapExactTokensForTokens(uint256 amountIn, uint256 amountOutMin, (address,address,bool,address)[] routes, address to, uint256 deadline) returns (uint256[] memory amounts)",
+]);
+
+const BTC_TOKEN = "0x7b7C000000000000000000000000000000000000" as const;
+
+function swapRouter(network: MezoNetwork): { router: Address; factory: Address } {
+  return network === "mainnet"
+    ? {
+        router: "0x16A76d3cd3C1e3CE843C6680d6B37E9116b5C706",
+        factory: "0x83FE469C636C4081b87bA5b3Ae9991c6Ed104248",
+      }
+    : {
+        router: "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
+        factory: "0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A",
+      };
+}
+
+export interface SwapRoute {
+  from: Address;
+  to: Address;
+  stable: boolean;
+  factory: Address;
+}
+
+/**
+ * Single-hop routes only (MUSD is the hub). fromToken must be an ERC-20
+ * (MUSD/mUSDC/mUSDT) — native BTC has no approve path. BTC works as output.
+ */
+export function buildSwapRoute(
+  fromSymbol: string,
+  toSymbol: string,
+  network: MezoNetwork,
+): { route: SwapRoute; from: MezoTokenMeta; to: MezoTokenMeta } {
+  const { factory } = swapRouter(network);
+  const from = findMezoBySymbol(fromSymbol, network);
+  const to = findMezoBySymbol(toSymbol, network);
+  if (!from || !to) throw new Error(`Unknown token pair '${fromSymbol}' → '${toSymbol}' on Mezo ${network}.`);
+  if (from.address === "native") {
+    throw new Error("BTC cannot be a swap input yet (no approve path for native gas) — swap from MUSD, mUSDC, or mUSDT. No transaction sent.");
+  }
+  const fromAddr = (from.address === "native" ? BTC_TOKEN : from.address) as Address;
+  const toAddr = (to.address === "native" ? BTC_TOKEN : to.address) as Address;
+  const hub = network === "mainnet" ? "MUSD" : "MUSD";
+  const involvesHub = from.symbol === hub || to.symbol === hub;
+  if (!involvesHub) {
+    throw new Error(`No direct pool for '${fromSymbol}' → '${toSymbol}' — only MUSD-hub pairs exist (MUSD/BTC, MUSD/mUSDC, MUSD/mUSDT). No transaction sent.`);
+  }
+  const stable = !(
+    (from.symbol === "MUSD" && to.symbol === "BTC") ||
+    (from.symbol === "BTC" && to.symbol === "MUSD")
+  );
+  return { route: { from: fromAddr, to: toAddr, stable, factory }, from, to };
+}
+
+export interface SwapQuote {
+  fromSymbol: string;
+  toSymbol: string;
+  amountIn: string;
+  amountOut: string;
+  stable: boolean;
+  router: string;
+}
+
+export async function quoteSwap(
+  fromSymbol: string,
+  toSymbol: string,
+  amountWei: bigint,
+  network: MezoNetwork,
+): Promise<SwapQuote> {
+  const c = client(network);
+  const { router } = swapRouter(network);
+  const { route, from, to } = buildSwapRoute(fromSymbol, toSymbol, network);
+  const amounts = (await c.readContract({
+    address: router,
+    abi: SWAP_ROUTER_ABI,
+    functionName: "getAmountsOut",
+    args: [amountWei, [[route.from, route.to, route.stable, route.factory]]],
+  })) as unknown as bigint[];
+  return {
+    fromSymbol: from.symbol,
+    toSymbol: to.symbol,
+    amountIn: formatUnits(amountWei, from.decimals),
+    amountOut: formatUnits(amounts[1] ?? 0n, to.decimals),
+    stable: route.stable,
+    router,
+  };
+}
+
+export async function executeSwap(
+  evmWalletId: string,
+  owner: string,
+  fromSymbol: string,
+  toSymbol: string,
+  amountWei: bigint,
+  minOutWei: bigint,
+  network: MezoNetwork,
+): Promise<string> {
+  const { router } = swapRouter(network);
+  const { route } = buildSwapRoute(fromSymbol, toSymbol, network);
+  await ensureTokenApproval(evmWalletId, owner, route.from, router, amountWei, network);
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const data = encodeFunctionData({
+    abi: SWAP_ROUTER_ABI,
+    functionName: "swapExactTokensForTokens",
+    args: [amountWei, minOutWei, [[route.from, route.to, route.stable, route.factory]], owner as Address, deadline],
+  });
+  return evmSendTransaction(evmWalletId, network, { to: router, data });
+}
+
 const LIQUIDATION_DEPOSIT_WEI = 200000000000000000000n;
 
 function client(network: MezoNetwork) {
@@ -113,9 +235,9 @@ function client(network: MezoNetwork) {
 
 type Address = `0x${string}`;
 
-async function fetchPrice(c: ReturnType<typeof client>): Promise<bigint> {
+async function fetchPrice(c: ReturnType<typeof client>, C: ReturnType<typeof musdContracts>): Promise<bigint> {
   return c.readContract({
-    address: TESTNET_CONTRACTS.priceFeed,
+    address: C.priceFeed as Address,
     abi: PRICE_FEED_ABI,
     functionName: "fetchPrice",
   }) as Promise<bigint>;
@@ -141,7 +263,7 @@ export async function fetchTroveStatus(borrower: string, network: MezoNetwork): 
   const c = client(network);
   const C = musdContracts(network);
   const who = borrower as Address;
-  const price = await fetchPrice(c);
+  const price = await fetchPrice(c, C);
   const tm = C.troveManager as Address;
   const [
     status,
@@ -207,7 +329,7 @@ export async function fetchSystemOverview(network: MezoNetwork) {
   const c = client(network);
   const C = musdContracts(network);
   const tm = C.troveManager as Address;
-  const price = await fetchPrice(c);
+  const price = await fetchPrice(c, C);
   const [tcr, systemColl, systemDebt, totalTroves] = await Promise.all([
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTCR", args: [price] }),
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getEntireSystemColl" }),
@@ -385,7 +507,7 @@ export async function executeOpenTrove(
     throw new Error(`Borrowing fee ${feePct.toFixed(2)}% exceeds max ${maxFeePercent}%. Aborted — no transaction sent.`);
   }
   const totalDebt = musdWei + fee + LIQUIDATION_DEPOSIT_WEI;
-  const price = await fetchPrice(c);
+  const price = await fetchPrice(c, C);
   const mcr = (await c.readContract({
     address: C.troveManager as Address,
     abi: TROVE_MANAGER_ABI,
@@ -565,7 +687,7 @@ export async function checkIcr(borrower: string, network: MezoNetwork): Promise<
   const c = client(network);
   const tm = C.troveManager as Address;
   const who = borrower as Address;
-  const price = await fetchPrice(c);
+  const price = await fetchPrice(c, C);
   const [coll, debt, mcr, tcr] = await Promise.all([
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveColl", args: [who] }),
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTroveDebt", args: [who] }),
@@ -642,8 +764,9 @@ export async function executeMintAndStake(
   const stakeOk = await waitForConfirmation(network, stake.stakeHash);
   if (!stakeOk) throw new Error(`Stake tx reverted: ${stake.stakeHash}. Trove is open — MUSD is in your wallet.`);
   const c = client(network);
-  const tm = musdContracts(network).troveManager as Address;
-  const price = await fetchPrice(c);
+  const C = musdContracts(network);
+  const tm = C.troveManager as Address;
+  const price = await fetchPrice(c, C);
   const [pool, tcr] = await Promise.all([
     fetchPoolStatus(owner, network),
     c.readContract({ address: tm, abi: TROVE_MANAGER_ABI, functionName: "getTCR", args: [price] }),
@@ -682,7 +805,7 @@ export async function executeRedeem(
 ): Promise<RedeemResult> {
   const C = musdContracts(network);
   const c = client(network);
-  const price = await fetchPrice(c);
+  const price = await fetchPrice(c, C);
   const [firstHint, partialNICR, musdLot] = (await c.readContract({
     address: C.hintHelpers as Address,
     abi: HINT_HELPERS_ABI,

@@ -72,6 +72,8 @@ export const CATALOG: CatalogCategory[] = [
       { name: 'mezo_musd_unstake', description: 'Withdraw staked MUSD. Policy-enforced.' },
       { name: 'mezo_musd_check_icr', description: 'Trove health, liquidation distance, top-up math. Read-only.' },
       { name: 'mezo_musd_mint_and_stake', description: 'Borrow MUSD and stake in one flow. Policy-enforced.' },
+      { name: 'mezo_swap_quote', description: 'Quote MUSD/BTC/mUSDC/mUSDT swaps. Read-only.' },
+      { name: 'mezo_swap_tokens', description: 'Swap via the pool router with slippage guard. Policy-enforced.' },
     ],
   },
 ];

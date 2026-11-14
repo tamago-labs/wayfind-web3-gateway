@@ -22,5 +22,21 @@
     "logo": null,
     "kind": "stable",
     "decimals": 18
+  },
+  {
+    "address": "0xe1a26db653708A2AD8F824E92Db9852410e33A59",
+    "symbol": "mUSDC",
+    "name": "Mezo USDC (testnet)",
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png",
+    "kind": "stable",
+    "decimals": 6
+  },
+  {
+    "address": "0x629320719a6190bd145C277226fd45e7648F950A",
+    "symbol": "mUSDT",
+    "name": "Mezo USDT (testnet)",
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png",
+    "kind": "stable",
+    "decimals": 6
   }
 ]
