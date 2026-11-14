@@ -45,6 +45,21 @@ const POLICY_OPTIONS = [
 
 type PolicyKey = (typeof POLICY_OPTIONS)[number]['key'];
 
+// EVM (Mezo) has a single policy so far — "EVM default", the ethereum
+// equivalent of Solana's default no-export policy. Ids are not secrets.
+const EVM_DEFAULT_POLICY_ID = 'd23bu5gzt83zixtzzqdsugfn';
+
+const EVM_POLICY_OPTIONS = [
+  {
+    key: 'default',
+    label: 'EVM Default',
+    blurb: 'No key exports',
+    ids: [EVM_DEFAULT_POLICY_ID],
+  },
+] as const;
+
+type ChainTab = 'solana' | 'mezo';
+
 // Capability rows: [default, caps, tight]. Order must match POLICY_OPTIONS.
 const ROWS: { label: string; values: [string, string, string] }[] = [
   { label: 'Key export', values: ['✕ Blocked', '✕ Blocked', '✕ Blocked'] },
@@ -61,11 +76,14 @@ const ROWS: { label: string; values: [string, string, string] }[] = [
   },
 ];
 
-function currentPolicyKey(policyIds: string[]): PolicyKey | null {
+function currentPolicyKey(
+  policyIds: string[],
+  options: readonly { key: string; ids: readonly string[] }[] = POLICY_OPTIONS,
+): PolicyKey | null {
   if (policyIds.length === 0) return null;
   const id = policyIds[0];
-  const match = POLICY_OPTIONS.find((o) => (o.ids as readonly string[]).includes(id));
-  return match ? match.key : 'default';
+  const match = options.find((o) => (o.ids as readonly string[]).includes(id));
+  return match ? (match.key as PolicyKey) : 'default';
 }
 
 export default function AuthorizationPage() {
@@ -77,6 +95,7 @@ export default function AuthorizationPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [tab, setTab] = useState<ChainTab>('solana');
 
   // Signers only attach to embedded wallets — external ones can't delegate.
   const solanaWallets = useMemo(() => {
@@ -98,6 +117,28 @@ export default function AuthorizationPage() {
       .filter((w) => embedded.has(w.address));
   }, [wallets, solanaHookWallets, user]);
 
+  // Embedded EVM (Mezo) wallets for the same owner.
+  const evmWallets = useMemo(() => {
+    const embedded = new Set(
+      (
+        (user?.linkedAccounts ?? []) as Array<{
+          type: string;
+          address?: string;
+          walletClientType?: string;
+        }>
+      )
+        .filter((a) => a.type === 'wallet' && a.walletClientType === 'privy' && a.address)
+        .map((a) => a.address as string),
+    );
+    return wallets
+      .filter((w) => w.address && (w.address as string).startsWith('0x'))
+      .map((w) => ({ address: w.address as string }))
+      .filter((w) => embedded.has(w.address));
+  }, [wallets, user]);
+
+  const chainWallets = tab === 'solana' ? solanaWallets : evmWallets;
+  const chainOptions = tab === 'solana' ? POLICY_OPTIONS : EVM_POLICY_OPTIONS;
+
   // Privy wallet id per address (needed for server reads). Ids never leave
   // the Privy user object except into our own backend calls.
   const idByAddress = useMemo(() => {
@@ -115,7 +156,7 @@ export default function AuthorizationPage() {
 
   const refresh = useCallback(async () => {
     const entries = await Promise.all(
-      solanaWallets.map(async (w) => {
+      chainWallets.map(async (w) => {
         const walletId = idByAddress[w.address];
         if (!walletId) return null;
         try {
@@ -135,16 +176,16 @@ export default function AuthorizationPage() {
       if (e) next[e[0]] = e[1];
     }
     setStatusByAddress(next);
-  }, [solanaWallets, idByAddress]);
+  }, [chainWallets, idByAddress]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const activeAddress = selected ?? solanaWallets[0]?.address ?? null;
+  const activeAddress = selected ?? chainWallets[0]?.address ?? null;
   const activeStatus = activeAddress ? statusByAddress[activeAddress] : undefined;
   const activeKey = activeStatus?.delegated
-    ? currentPolicyKey(activeStatus.policyIds)
+    ? currentPolicyKey(activeStatus.policyIds, chainOptions)
     : null;
 
   const serverError = (res: { errors?: Array<{ message?: string }> | null }): string | null =>
@@ -241,9 +282,30 @@ export default function AuthorizationPage() {
         </p>
       )}
 
-      {solanaWallets.length === 0 ? (
+      <div className="flex gap-2" role="tablist" aria-label="Chain">
+        {(['solana', 'mezo'] as ChainTab[]).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            onClick={() => {
+              setTab(t);
+              setSelected(null);
+            }}
+            className={`flex-1 rounded-full px-4 py-2 text-xs font-bold transition-colors ${
+              tab === t ? 'bg-navy text-white' : 'bg-navy/5 text-navy hover:bg-navy/10'
+            }`}
+          >
+            {t === 'solana' ? 'Solana' : 'Mezo'}
+          </button>
+        ))}
+      </div>
+
+      {chainWallets.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-navy/20 p-6 text-sm text-heroslate">
-          <p className="font-bold text-navy">No embedded wallet to authorize yet.</p>
+          <p className="font-bold text-navy">
+            {tab === 'solana' ? 'No Solana wallet to authorize yet.' : 'No Mezo wallet to authorize yet.'}
+          </p>
           <p className="mt-2">
             Only Privy embedded wallets can delegate. Yours is created automatically at login —
             check the account button below if this stays empty.
@@ -251,9 +313,9 @@ export default function AuthorizationPage() {
         </div>
       ) : (
         <>
-          {solanaWallets.length > 1 && (
+          {chainWallets.length > 1 && (
             <div className="flex flex-wrap gap-2">
-              {solanaWallets.map((w) => {
+              {chainWallets.map((w) => {
                 const s = statusByAddress[w.address];
                 const isActive = w.address === activeAddress;
                 return (
@@ -275,7 +337,7 @@ export default function AuthorizationPage() {
                       {!s
                         ? 'Checking…'
                         : s.delegated
-                          ? `Authorized · ${POLICY_OPTIONS.find((o) => o.key === currentPolicyKey(s.policyIds))?.label ?? 'Default'}`
+                          ? `Authorized · ${chainOptions.find((o) => o.key === currentPolicyKey(s.policyIds, chainOptions))?.label ?? 'Default'}`
                           : 'Not authorized'}
                     </p>
                   </button>
@@ -294,10 +356,11 @@ export default function AuthorizationPage() {
                   {!activeStatus
                     ? 'Checking status…'
                     : activeStatus.delegated
-                      ? `Authorized · ${POLICY_OPTIONS.find((o) => o.key === activeKey)?.label ?? 'Default'}`
+                      ? `Authorized · ${chainOptions.find((o) => o.key === activeKey)?.label ?? 'Default'}`
                       : 'Not authorized'}
                 </p>
               </div>
+              {tab === 'solana' ? (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[560px] text-sm">
                   <thead>
@@ -361,6 +424,43 @@ export default function AuthorizationPage() {
                   </tbody>
                 </table>
               </div>
+              ) : (
+                <div className="space-y-3 p-4 text-sm">
+                  <div className="rounded-2xl border border-navy/10 bg-ice p-4">
+                    <p className="font-bold">EVM Default</p>
+                    <p className="mt-0.5 text-xs text-heroslate">No key exports</p>
+                    <ul className="mt-2 space-y-1 text-xs text-heroslate">
+                      <li className="font-bold text-red-500">✕ Key export blocked</li>
+                      <li>Sends enforced by the Mezo policy</li>
+                      <li>Gas paid in BTC</li>
+                    </ul>
+                  </div>
+                  {(() => {
+                    const isCurrent = activeStatus?.delegated && activeKey === 'default';
+                    return isCurrent ? (
+                      <span className="inline-block rounded-full bg-emerald-100 px-4 py-2 text-xs font-bold text-emerald-700">
+                        Current policy
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() =>
+                          activeStatus?.delegated
+                            ? switchPolicy(activeAddress, 'default')
+                            : authorize(activeAddress, 'default')
+                        }
+                        disabled={busy === activeAddress}
+                        className="rounded-full bg-cta px-4 py-2 text-xs font-bold text-white hover:bg-ctahover transition-colors disabled:opacity-50"
+                      >
+                        {busy === activeAddress
+                          ? 'Working…'
+                          : activeStatus?.delegated
+                            ? 'Switch to EVM Default'
+                            : 'Authorize · EVM Default'}
+                      </button>
+                    );
+                  })()}
+                </div>
+              )}
               {activeStatus?.delegated && (
                 <div className="border-t border-navy/10 p-4 text-center">
                   <button
@@ -374,9 +474,11 @@ export default function AuthorizationPage() {
               )}
             </div>
           )}
-          <p className="text-center text-xs text-heroslate">
-            To switch policy, use Switch — it revokes and re-authorizes in one step.
-          </p>
+          {tab === 'solana' && (
+            <p className="text-center text-xs text-heroslate">
+              To switch policy, use Switch — it revokes and re-authorizes in one step.
+            </p>
+          )}
         </>
       )}
     </section>

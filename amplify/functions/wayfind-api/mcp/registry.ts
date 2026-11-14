@@ -10,6 +10,10 @@ import { unifiedBalanceTool } from "./tools/usdc/unified_balance";
 import { usdcChainsTool } from "./tools/usdc/chains";
 import { usdcDepositTool } from "./tools/usdc/deposit";
 import { usdcSpendTool } from "./tools/usdc/spend";
+import { mezoGetWalletAddressTool } from "./mezo/get_wallet_address";
+import { mezoGetBalancesTool } from "./mezo/get_balances";
+import { mezoGetTransactionTool } from "./mezo/get_transaction";
+import { mezoSendTokensTool } from "./mezo/send_tokens";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -27,12 +31,17 @@ const allTools: ToolDef[] = [
   usdcChainsTool,
   usdcDepositTool,
   usdcSpendTool,
+  mezoGetWalletAddressTool,
+  mezoGetBalancesTool,
+  mezoGetTransactionTool,
+  mezoSendTokensTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [
   { id: "wallet", label: "Wallet Operations" },
   { id: "okx", label: "OKX DEX Swaps" },
   { id: "usdc", label: "Stablecoin Finance" },
+  { id: "mezo", label: "Mezo EVM" },
 ];
 
 export function listTools(ctx: ToolContext): ToolDef[] {

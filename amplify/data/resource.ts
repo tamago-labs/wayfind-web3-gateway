@@ -28,6 +28,10 @@ const schema = a.schema({
       // walletId → UserProfile). Set at issuance; older rows lack them.
       walletAddress: a.string(),
       network: a.enum(["mainnet", "testnet"]),
+      // EVM (Mezo) wallet for the same owner. Null on pre-Mezo rows —
+      // mezo_* tools refuse with a re-issue hint. Stamped at issuance.
+      evmWalletId: a.string(),
+      evmWalletAddress: a.string(),
       enabledTools: a.string().array(),
     })
     .identifier(["serverIdHash"])

@@ -46,11 +46,18 @@ export const handler: Handler = async (event) => {
       env.PRIVY_SPENDING_CAPS_POLICY_ID || "us7w1phwzpr2c3vsw3mgeb8r",
     tight: env.PRIVY_TIGHT_POLICY_ID || "sma14e3q3s2fdr9172k2csej",
   };
+  // EVM (Mezo) wallets resolve to the ethereum policy by address format —
+  // same keys, chain-appropriate ids. Only 'default' exists for EVM so far.
+  const isEvmAddress = walletAddress.startsWith("0x");
+  const evmPolicyByKey: Record<string, string> = {
+    default: env.PRIVY_EVM_DEFAULT_POLICY_ID || "d23bu5gzt83zixtzzqdsugfn",
+  };
+  const map = isEvmAddress ? evmPolicyByKey : policyByKey;
   const key = policyKey ?? "default";
-  const policyId = policyByKey[key];
+  const policyId = map[key];
   if (!policyId) {
     throw new Error(
-      `Unknown policy "${key}" — choose default, caps, or tight`,
+      `Unknown policy "${key}" — choose ${Object.keys(map).join(", ")}`,
     );
   }
 

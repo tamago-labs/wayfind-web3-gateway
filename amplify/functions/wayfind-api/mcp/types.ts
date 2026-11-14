@@ -2,7 +2,7 @@
 // stateless): POST JSON-RPC to /mcp/{serverId}/message. The SDK package is only
 // used for protocol constants, never for its stateful transports.
 
-export type Category = "wallet" | "okx" | "usdc";
+export type Category = "wallet" | "okx" | "usdc" | "mezo";
 
 export interface ToolContext {
   serverId: string;
@@ -10,6 +10,10 @@ export interface ToolContext {
   // Null on pre-Phase-3 rows — wallet tools refuse with a re-issue hint.
   walletAddress: string | null;
   network: "mainnet" | "testnet";
+  // EVM (Mezo) wallet for the same owner. Null on pre-Mezo rows —
+  // mezo_* tools refuse with a re-issue hint.
+  evmWalletId: string | null;
+  evmWalletAddress: string | null;
   enabledTools: string[] | null; // null = everything enabled (pre-Phase-2 seed mode)
 }
 

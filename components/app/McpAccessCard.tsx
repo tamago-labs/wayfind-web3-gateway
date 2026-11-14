@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useWallets as useSolanaWallets } from '@privy-io/react-auth/solana';
 import type { Schema } from '@/amplify/data/resource';
 
@@ -80,6 +80,7 @@ export function mcpJsonSnippet(url: string): string {
 export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) => void }) {
   const { user } = usePrivy();
   const { wallets } = useSolanaWallets();
+  const { wallets: evmWallets } = useWallets();
   const [record, setRecord] = useState<{ serverIdHash: string; updatedAt: string } | null>(null);
   // Full URL, only ever known on the device that issued it (server stores the hash).
   const [storedUrl, setStoredUrl] = useState<string | null>(null);
@@ -112,6 +113,31 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
     return { id: match.id as string, address: first.address as string };
   }, [user, wallets]);
   const walletId = wallet?.id ?? null;
+
+  // Embedded EVM (Mezo) wallet for the same owner. Null while still creating —
+  // issuance stamps null and mezo_* tools refuse until a regenerate restamps.
+  const evmWallet = useMemo(() => {
+    const accounts = (user?.linkedAccounts ?? []) as Array<{
+      type: string;
+      address?: string;
+      id?: string;
+      walletClientType?: string;
+    }>;
+    const embeddedIds = new Set(
+      accounts
+        .filter((a) => a.type === 'wallet' && a.walletClientType === 'privy' && a.id)
+        .map((a) => a.id as string),
+    );
+    const first = evmWallets.find(
+      (w) => w.address && typeof w.address === 'string' && (w.address as string).startsWith('0x'),
+    );
+    if (!first) return null;
+    const match = accounts.find(
+      (a) => a.address === first.address && embeddedIds.has(a.id as string),
+    );
+    if (!match?.id) return null;
+    return { id: match.id as string, address: first.address as string };
+  }, [user, evmWallets]);
 
   const refresh = useCallback(async () => {
     if (!walletId) return;
@@ -214,6 +240,8 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
           walletId: wallet.id,
           walletAddress: wallet.address,
           network,
+          evmWalletId: evmWallet?.id ?? null,
+          evmWalletAddress: evmWallet?.address ?? null,
           enabledTools: [],
         });
         if (previousHash) {
@@ -235,7 +263,7 @@ export default function McpAccessCard({ onUrl }: { onUrl?: (url: string | null) 
         setBusy(false);
       }
     },
-    [wallet, user?.id, refresh],
+    [wallet, evmWallet, user?.id, refresh],
   );
 
   const revoke = useCallback(async () => {

@@ -23,12 +23,14 @@ type McpRecord = {
   walletId: string;
   walletAddress?: string | null;
   network?: "mainnet" | "testnet" | null;
+  evmWalletId?: string | null;
+  evmWalletAddress?: string | null;
   enabledTools?: (string | null)[] | null;
 } | null;
 
 export async function resolveContext(serverId: string): Promise<ToolContext | null> {
   if (process.env.MCP_SEED_SERVER_ID && serverId === process.env.MCP_SEED_SERVER_ID) {
-    return { serverId, walletId: "seed", walletAddress: null, network: "testnet", enabledTools: null };
+    return { serverId, walletId: "seed", walletAddress: null, network: "testnet", evmWalletId: null, evmWalletAddress: null, enabledTools: null };
   }
   let record: McpRecord = null;
   try {
@@ -46,6 +48,8 @@ export async function resolveContext(serverId: string): Promise<ToolContext | nu
     walletId: record.walletId,
     walletAddress: record.walletAddress ?? null,
     network: record.network === "mainnet" ? "mainnet" : "testnet",
+    evmWalletId: record.evmWalletId ?? null,
+    evmWalletAddress: record.evmWalletAddress ?? null,
     enabledTools: (record.enabledTools ?? []).filter((t): t is string => typeof t === "string"),
   };
 }

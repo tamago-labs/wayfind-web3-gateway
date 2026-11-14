@@ -46,6 +46,17 @@ export const CATALOG: CatalogCategory[] = [
       { name: 'usdc_spend', description: 'Spend USDC, optionally cross-chain. Policy-enforced.' },
     ],
   },
+  {
+    id: 'mezo',
+    label: 'Mezo EVM',
+    icon: 'https://s2.coinmarketcap.com/static/img/coins/64x64/39727.png',
+    tools: [
+      { name: 'mezo_get_wallet_address', description: 'Show the attached Mezo wallet and network.' },
+      { name: 'mezo_get_balances', description: 'Read BTC, MEZO, and MUSD balances. Read-only.' },
+      { name: 'mezo_get_transaction', description: 'Look up one Mezo transaction by hash. Read-only.' },
+      { name: 'mezo_send_tokens', description: 'Send BTC, MEZO, or MUSD by symbol. Policy-enforced.' },
+    ],
+  },
 ];
 
 const META = new Map<string, { categoryId: string; category: string; description: string }>();
