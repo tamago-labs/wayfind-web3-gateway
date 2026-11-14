@@ -158,8 +158,11 @@ export async function getMezoTransaction(
       network,
       "eth_getTransactionReceipt",
       [hash],
-    );
-    status = receipt?.status === "0x1" ? "confirmed" : "failed";
+    ).catch(() => null);
+    // No receipt yet (indexing lag) is pending, not failed — only an
+    // explicit 0x0 status means the transaction failed.
+    if (!receipt) return { hash: tx.hash, from: tx.from ?? "unknown", to: tx.to ?? null, valueWei: BigInt(tx.value ?? "0x0"), status: "pending", blockNumber };
+    status = receipt.status === "0x1" ? "confirmed" : "failed";
   }
   return {
     hash: tx.hash,
