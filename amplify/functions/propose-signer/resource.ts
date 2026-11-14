@@ -12,5 +12,6 @@ export const proposeSignerFunction = defineFunction({
     PRIVY_DEFAULT_POLICY_ID: process.env.PRIVY_DEFAULT_POLICY_ID ?? "",
     PRIVY_SPENDING_CAPS_POLICY_ID: process.env.PRIVY_SPENDING_CAPS_POLICY_ID ?? "",
     PRIVY_TIGHT_POLICY_ID: process.env.PRIVY_TIGHT_POLICY_ID ?? "",
+    PRIVY_EVM_DEFAULT_POLICY_ID: process.env.PRIVY_EVM_DEFAULT_POLICY_ID ?? "",
   },
 });
