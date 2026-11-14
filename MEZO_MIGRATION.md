@@ -23,13 +23,22 @@ Legend: ✅ tested live on testnet · 🧪 tested locally via tsx · ⬜ pending
 - [ ] `mezo_musd_withdraw_collateral`
 - [ ] `mezo_musd_repay` (auto-approve + waits for approve receipt)
 - [ ] `mezo_musd_close_trove` (refuses with repay-first hint if debt > 0)
-- [ ] E2E each write on testnet (needs EVM signer authorized + testnet BTC)
+- [x] E2E each write on testnet — done via endpoint probes (see Live E2E section below)
 
 ## Redeem — done, hint path verified live
 - [x] Verified real `redeemCollateral` is 6-arg (7th `maxFeePercentage` in old ABI doesn't exist on-chain — that + zero hints is why it always reverted)
 - [x] Verified `getRedemptionHints` returns 3 values, not 4 (upstream ABI wrong)
 - [x] Fixed upstream PriceFeed typo in local registry (39-char address → correct `...15f96A...` from `mezo-org/musd` deployment artifact; other 7 addresses match)
 - [x] `mezo_musd_redeem` — real hints, truncated lot, 5M gas (code done, NOT live-fired: needs MUSD balance)
+## Live E2E on the endpoint (testnet URL …f98/message)
+- [x] Reads: balances, trove (closed), pool (0), ICR check
+- [x] Stake 10 → pool showed 10 (first attempt falsely reported "approve reverted" — tx had landed; public-RPC receipt polling needs hardening)
+- [x] Unstake 10 → back to 0, totals restored
+- [x] Swap 1 MUSD → ~0.00001278 BTC (matches quote)
+- [x] Found live: Privy REST rejects `gasLimit`, needs `gas_limit` (fixed, pushed — redeploy before redeem retry)
+- [ ] Redeem retry after redeploy (5 MUSD)
+- [ ] Trove loop: needs ~65 more MUSD top-up (repay+close math: debt ≈ borrow + fee + 200 vs wallet balance)
+- [ ] Mint-and-stake E2E
 - [ ] E2E redeem on testnet (needs MUSD: open trove → borrow → redeem loop)
 
 ## Stability pool — done, read verified live (86.2M MUSD total deposits)

@@ -86,7 +86,11 @@ const REDEEM_ABI = parseAbi([
 ]);
 
 const WRITE_ABI = parseAbi([
-  "function openTrove(uint256 _maxFeePercentage, uint256 _MUSDAmount, address _upperHint, address _lowerHint) payable",
+  // Verified against mezo-org/musd deployments/matsnet/BorrowerOperations.json:
+  // openTrove takes the NET borrow amount; the contract adds the borrowing fee
+  // + 200 MUSD gas compensation itself. (A 4-arg maxFee variant does not exist
+  // on-chain — calling it reverts on the selector.)
+  "function openTrove(uint256 _debtAmount, address _upperHint, address _lowerHint) payable",
   "function addColl(address _upperHint, address _lowerHint) payable",
   "function withdrawColl(uint256 _collWithdrawal, address _upperHint, address _lowerHint)",
   "function repayMUSD(uint256 _MUSDamount, address _upperHint, address _lowerHint)",
@@ -519,11 +523,12 @@ export async function executeOpenTrove(
   }
   const nicr = (collateralWei * 10n ** 20n) / totalDebt;
   const { upperHint, lowerHint } = await getHints(c, C, nicr);
-  const maxFeeWei = BigInt(Math.floor(maxFeePercent * 1e16));
+  // No on-chain fee cap param exists — maxFeePercent is enforced off-chain
+  // above (abort before sending). The raw musdWei is the net borrow.
   const data = encodeFunctionData({
     abi: WRITE_ABI,
     functionName: "openTrove",
-    args: [maxFeeWei, musdWei, upperHint, lowerHint],
+    args: [musdWei, upperHint, lowerHint],
   });
   const txHash = await evmSendTransaction(evmWalletId, network, {
     to: C.borrowerOperations,
