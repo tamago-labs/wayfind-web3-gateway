@@ -1,0 +1,26 @@
+[
+  {
+    "address": "native",
+    "symbol": "BTC",
+    "name": "Bitcoin (Mezo gas)",
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png",
+    "kind": "native",
+    "decimals": 18
+  },
+  {
+    "address": "0x7B7c000000000000000000000000000000000001",
+    "symbol": "MEZO",
+    "name": "Mezo",
+    "logo": "https://s2.coinmarketcap.com/static/img/coins/64x64/39727.png",
+    "kind": "mezo",
+    "decimals": 18
+  },
+  {
+    "address": "0xdD468A1DDc392dcdbEf6db6e34E89AA338F9F186",
+    "symbol": "MUSD",
+    "name": "Mezo USD",
+    "logo": null,
+    "kind": "stable",
+    "decimals": 18
+  }
+]
