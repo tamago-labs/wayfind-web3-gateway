@@ -58,7 +58,7 @@ export default function Hero() {
           Your AI Bots can now transact onchain.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg text-heroslate">
-          One remote MCP server connects Grok Bot, Claude, or Cursor to your Solana wallet. Spending caps and program allowlists are enforced by Privy before anything is signed.
+          One remote MCP server connects Grok Bot, Claude, or Cursor to your Web3 wallets. Spending caps and program allowlists are enforced by Privy before anything is signed.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
           <Link href="/app" className="rounded-full bg-cta px-8 py-4 font-semibold text-white hover:bg-ctahover transition-colors">
@@ -75,7 +75,14 @@ export default function Hero() {
             loading="lazy"
           />
           <span className="font-semibold text-navy">Solana</span>
-          <span>&amp; more to come</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://s2.coinmarketcap.com/static/img/coins/64x64/39727.png"
+            alt="Mezo"
+            className="h-5 w-5 rounded-full"
+            loading="lazy"
+          />
+          <span className="font-semibold text-navy">Mezo</span>
         </div>
       </motion.div>
     </section>

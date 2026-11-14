@@ -17,6 +17,7 @@ interface AccountModalProps {
   onClose: () => void;
   email?: string;
   wallets: { address: string; embedded: boolean }[];
+  evmWallets?: { address: string; embedded: boolean }[];
   onLogout: () => void;
 }
 
@@ -24,7 +25,7 @@ function truncate(address: string) {
   return address.length > 12 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
 }
 
-export default function AccountModal({ open, onClose, email, wallets, onLogout }: AccountModalProps) {
+export default function AccountModal({ open, onClose, email, wallets, evmWallets = [], onLogout }: AccountModalProps) {
   const { user } = usePrivy();
   const [net, setNet] = useState<Net>('testnet');
   const [profileId, setProfileId] = useState<string | null>(null);
@@ -157,7 +158,7 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
               ) : (
                 wallets.map((w) => (
                   <div
-                    key={`${net}-${w.address}`}
+                    key={`sol-${net}-${w.address}`}
                     className="flex items-center gap-3 rounded-2xl border border-navy/10 bg-ice p-4"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -191,9 +192,60 @@ export default function AccountModal({ open, onClose, email, wallets, onLogout }
                   </div>
                 ))
               )}
-              {wallets.length > 0 && (
+              {evmWallets.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-navy/20 p-5 text-sm text-heroslate">
+                  <p className="font-bold text-navy">No Mezo wallet yet.</p>
+                  <p className="mt-1">
+                    If you logged in with email, the embedded EVM wallet may still be creating,
+                    wait a few seconds and reopen this panel.
+                  </p>
+                </div>
+              ) : (
+                evmWallets.map((w) => (
+                  <div
+                    key={`mezo-${net}-${w.address}`}
+                    className="flex items-center gap-3 rounded-2xl border border-navy/10 bg-ice p-4"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="https://s2.coinmarketcap.com/static/img/coins/64x64/39727.png"
+                      alt="Mezo"
+                      className="h-7 w-7 shrink-0 rounded-full"
+                      loading="lazy"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-heroslate">
+                          Mezo
+                        </p>
+                        {net === 'testnet' && (
+                          <span className="rounded-full bg-bamber/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-navy">
+                            Testnet
+                          </span>
+                        )}
+                      </div>
+                      <p className="truncate font-mono text-sm font-semibold" title={w.address}>
+                        {truncate(w.address)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => copy(w.address)}
+                      aria-label={copied === w.address ? 'Copied' : 'Copy address'}
+                      className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-navy shadow-sm hover:bg-navy hover:text-white transition-colors"
+                    >
+                      {copied === w.address ? (
+                        <Check className="h-4 w-4" strokeWidth={2.2} />
+                      ) : (
+                        <Copy className="h-4 w-4" strokeWidth={2.2} />
+                      )}
+                    </button>
+                  </div>
+                ))
+              )}
+              {(wallets.length > 0 || evmWallets.length > 0) && (
                 <p className="text-xs text-heroslate">
-                  Switching scope? Regenerate your MCP URL in Connect. Each URL is locked to the scope it was created with.
+                  Endpoints are locked to Testnet or Mainnet at issue time. If you change
+                  network, issue a new endpoint in Connect.
                 </p>
               )}
             </div>

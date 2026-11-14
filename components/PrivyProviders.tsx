@@ -1,6 +1,7 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
+import { SUPPORTED_EVM_CHAINS, mezoTestnet } from '@/lib/evmChains';
 
 const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID ?? '';
 const clientId = process.env.NEXT_PUBLIC_PRIVY_CLIENT_ID;
@@ -28,9 +29,14 @@ export default function PrivyProviders({ children }: { children: React.ReactNode
       config={{
         loginMethods: ['email'],
         appearance: {
-          walletChainType: 'solana-only',
+          walletChainType: 'ethereum-and-solana',
         },
+        defaultChain: mezoTestnet,
+        supportedChains: [...SUPPORTED_EVM_CHAINS],
         embeddedWallets: {
+          ethereum: {
+            createOnLogin: 'users-without-wallets',
+          },
           solana: {
             createOnLogin: 'users-without-wallets',
           },

@@ -25,6 +25,7 @@ interface AppSidebarProps {
   onClose: () => void;
   email?: string;
   wallets: SidebarWallet[];
+  evmWallets?: SidebarWallet[];
   onLogout: () => void;
 }
 
@@ -33,6 +34,7 @@ export default function AppSidebar({
   onClose,
   email,
   wallets,
+  evmWallets = [],
   onLogout,
 }: AppSidebarProps) {
   const pathname = usePathname();
@@ -103,6 +105,7 @@ export default function AppSidebar({
         onClose={() => setAccountOpen(false)}
         email={email}
         wallets={wallets}
+        evmWallets={evmWallets}
         onLogout={() => {
           setAccountOpen(false);
           onLogout();

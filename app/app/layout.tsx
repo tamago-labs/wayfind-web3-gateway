@@ -68,6 +68,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       .filter((w) => w.embedded);
   }, [wallets, solanaHookWallets, embeddedByAddress]);
 
+  // EVM (Mezo + future chains): one address works across all EVM chain IDs.
+  // useWallets() returns EVM wallets; filter the same embedded map.
+  const evmWallets = useMemo(() => {
+    return wallets
+      .filter((w) => w.address && typeof w.address === 'string' && w.address.startsWith('0x'))
+      .map((w) => ({
+        address: w.address as string,
+        embedded: embeddedByAddress[w.address as string] ?? false,
+      }))
+      .filter((w) => w.embedded);
+  }, [wallets, embeddedByAddress]);
+
   if (!ready) {
     return (
       <main className="grid h-screen place-items-center bg-ice font-brico text-navy">
@@ -115,6 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         onClose={() => setSideOpen(false)}
         email={user?.email?.address}
         wallets={solanaWallets}
+        evmWallets={evmWallets}
         onLogout={logout}
       />
 
