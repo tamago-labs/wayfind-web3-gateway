@@ -14,6 +14,12 @@ import { mezoGetWalletAddressTool } from "./mezo/get_wallet_address";
 import { mezoGetBalancesTool } from "./mezo/get_balances";
 import { mezoGetTransactionTool } from "./mezo/get_transaction";
 import { mezoSendTokensTool } from "./mezo/send_tokens";
+import { mezoMusdTroveStatusTool } from "./mezo/musd/trove_status";
+import { mezoMusdBorrowingFeeTool } from "./mezo/musd/borrowing_fee";
+import { mezoMusdSystemOverviewTool } from "./mezo/musd/system_overview";
+import { mezoMusdInterestRateTool } from "./mezo/musd/interest_rate";
+import { mezoMusdProtocolConstantsTool } from "./mezo/musd/protocol_constants";
+import { mezoMusdMaxBorrowingCapacityTool } from "./mezo/musd/max_borrowing_capacity";
 
 // Registry: the single place that decides what tools/list returns.
 // New tools land here as one import + one spread — nothing else changes.
@@ -35,6 +41,12 @@ const allTools: ToolDef[] = [
   mezoGetBalancesTool,
   mezoGetTransactionTool,
   mezoSendTokensTool,
+  mezoMusdTroveStatusTool,
+  mezoMusdBorrowingFeeTool,
+  mezoMusdSystemOverviewTool,
+  mezoMusdInterestRateTool,
+  mezoMusdProtocolConstantsTool,
+  mezoMusdMaxBorrowingCapacityTool,
 ];
 
 export const CATEGORIES: { id: Category; label: string }[] = [

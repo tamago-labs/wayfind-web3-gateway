@@ -55,6 +55,12 @@ export const CATALOG: CatalogCategory[] = [
       { name: 'mezo_get_balances', description: 'Read BTC, MEZO, and MUSD balances. Read-only.' },
       { name: 'mezo_get_transaction', description: 'Look up one Mezo transaction by hash. Read-only.' },
       { name: 'mezo_send_tokens', description: 'Send BTC, MEZO, or MUSD by symbol. Policy-enforced.' },
+      { name: 'mezo_musd_trove_status', description: 'Read trove collateral, debt, ICR. Read-only.' },
+      { name: 'mezo_musd_borrowing_fee', description: 'Quote the MUSD borrowing fee. Read-only.' },
+      { name: 'mezo_musd_system_overview', description: 'TCR, totals, recovery mode. Read-only.' },
+      { name: 'mezo_musd_interest_rate', description: 'Current borrow interest rate. Read-only.' },
+      { name: 'mezo_musd_protocol_constants', description: 'CCR, MCR, redemption fee. Read-only.' },
+      { name: 'mezo_musd_max_borrowing_capacity', description: 'How much more a trove can borrow. Read-only.' },
     ],
   },
 ];
